@@ -118,7 +118,7 @@
       border: none;
       cursor: pointer;
       outline: none;
-      transition: rotate 0.3s;
+      transition: rotate 0.3s cubic-bezier(0.34,1.56,0.64,1);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -138,7 +138,7 @@
       border: none;
       cursor: pointer;
       outline: none;
-      transition: rotate 0.3s;
+      transition: rotate 0.3s cubic-bezier(0.34,1.56,0.64,1);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -210,8 +210,23 @@
       align-items: flex-start;
       gap: 8px;
       position: relative;
+      /* slide-in animation for new items */
+      animation: slideIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
     }
-    .dropdown-wrap.drag-over { border-top: 2px solid var(--accent); }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-18px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0)      scale(1);    }
+    }
+
+    .dropdown-wrap.dragging {
+      opacity: 0.5;
+      outline: 2px dashed var(--accent);
+      border-radius: 12px;
+    }
+    .dropdown-wrap.drag-over {
+      outline: 2px solid var(--accent);
+      border-radius: 12px;
+    }
 
     /* Left controls */
     .dd-controls {
@@ -227,10 +242,10 @@
       border-radius: 50%;
       background: var(--dot);
       cursor: pointer;
-      transition: background 0.2s;
+      transition: background 0.2s, transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
       flex-shrink: 0;
     }
-    .dd-dot:hover { background: var(--accent); }
+    .dd-dot:hover { background: var(--accent); transform: scale(1.3); }
     .dd-drag {
       cursor: grab;
       color: var(--text-muted);
@@ -238,14 +253,15 @@
       line-height: 1;
       user-select: none;
       letter-spacing: -1px;
+      transition: color 0.2s, transform 0.2s;
     }
-    .dd-drag:active { cursor: grabbing; }
+    .dd-drag:hover { color: var(--accent); }
+    .dd-drag:active { cursor: grabbing; transform: scale(1.2); }
 
     /* Dropdown itself */
     .dropdown {
       border: 1px solid var(--border);
       border-radius: 12px;
-      transition: all 300ms;
       display: flex;
       flex-direction: column;
       min-height: 58px;
@@ -253,27 +269,28 @@
       overflow: hidden;
       position: relative;
       flex: 1;
+      transition: border-color 0.2s;
     }
+
+    /* Hidden checkbox still drives state */
     .dropdown input.dd-state { position: absolute; display: none; }
-    .dropdown input.dd-state:checked ~ .dd-list {
-      opacity: 1;
-      max-height: none;
-      height: auto;
-      pointer-events: auto;
-      user-select: auto;
-      padding: 8px 12px 12px;
-      margin-top: 0;
+
+    /* Animated body */
+    .dd-body {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.35s cubic-bezier(0.4,0,0.2,1);
     }
-    .dropdown input.dd-state:not(:checked) ~ .dd-list {
-      opacity: 0;
-      max-height: 0;
-      height: 0;
-      pointer-events: none;
-      user-select: none;
+    .dd-body-inner {
       overflow: hidden;
-      padding: 0 12px;
-      margin-top: 0;
     }
+    .dropdown input.dd-state:checked ~ .dd-body {
+      grid-template-rows: 1fr;
+    }
+    .dd-list {
+      padding: 8px 12px 12px;
+    }
+
     .dd-trigger {
       cursor: pointer;
       font-weight: 600;
@@ -293,11 +310,12 @@
     .dd-trigger:hover { background: var(--surface2); }
     .dd-arrow {
       display: inline-block;
-      transition: transform 0.3s;
+      transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
       color: var(--text-muted);
       font-size: 20px;
       line-height: 1;
       margin-right: 2px;
+      flex-shrink: 0;
     }
     .dropdown input.dd-state:checked ~ .dd-trigger .dd-arrow {
       transform: rotate(90deg);
@@ -311,14 +329,23 @@
       color: var(--text);
       font-family: inherit;
       font-weight: 600;
-      cursor: text;
+      cursor: pointer;
       min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      transition: background 0.2s, padding 0.2s, border-radius 0.2s;
+    }
+    .dd-title:not([readonly]) {
+      cursor: text;
+      background: var(--surface2);
+      padding: 2px 6px;
+      border-radius: 6px;
+      white-space: normal;
+      overflow: visible;
     }
 
     /* Note area */
-    .dd-list {
-      transition: opacity 300ms;
-    }
     .note-area {
       width: 100%;
       min-height: 60px;
@@ -336,15 +363,20 @@
 
     /* ===== MODAL ===== */
     .modal-overlay {
-      display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.55);
+      background: rgba(0,0,0,0);
       z-index: 1000;
+      display: flex;
       align-items: center;
       justify-content: center;
+      pointer-events: none;
+      transition: background 0.25s;
     }
-    .modal-overlay.active { display: flex; }
+    .modal-overlay.active {
+      background: rgba(0,0,0,0.55);
+      pointer-events: auto;
+    }
     .modal {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -355,6 +387,13 @@
       display: flex;
       flex-direction: column;
       gap: 14px;
+      transform: scale(0.85) translateY(20px);
+      opacity: 0;
+      transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.25s;
+    }
+    .modal-overlay.active .modal {
+      transform: scale(1) translateY(0);
+      opacity: 1;
     }
     .modal h3 { font-size: 1rem; color: var(--text); }
     .modal label { font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; cursor: pointer; }
@@ -368,14 +407,15 @@
       color: var(--text);
       cursor: pointer;
       font-size: 13px;
-      transition: background 0.2s;
+      transition: background 0.2s, transform 0.15s;
     }
     .modal-btns button.primary {
       background: var(--accent);
       color: #fff;
       border-color: var(--accent);
     }
-    .modal-btns button:hover { opacity: 0.85; }
+    .modal-btns button:hover { opacity: 0.85; transform: scale(1.04); }
+    .modal-btns button:active { transform: scale(0.97); }
 
     /* ===== PAGES NAV ===== */
     .pages-nav {
@@ -393,15 +433,31 @@
       color: var(--text-muted);
       font-size: 13px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
       user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      max-width: 180px;
     }
     .page-tab.active {
       background: var(--accent);
       color: #fff;
       border-color: var(--accent);
     }
-    .page-tab:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+    .page-tab:hover:not(.active) { border-color: var(--accent); color: var(--accent); transform: scale(1.05); }
+    .page-tab input.page-tab-input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: inherit;
+      font-size: 13px;
+      font-family: inherit;
+      font-weight: inherit;
+      width: 100%;
+      min-width: 30px;
+      cursor: text;
+    }
 
     /* Scrollbar */
     ::-webkit-scrollbar { width: 7px; height: 7px; border-radius: 999px; }
@@ -414,17 +470,42 @@
       font-size: 14px;
       padding: 40px 0 20px;
     }
+
+    /* ===== DRAG GHOST ===== */
+    #dragGhost {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.85;
+      border-radius: 12px;
+      background: var(--surface2);
+      border: 2px solid var(--accent);
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+      transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1);
+      display: none;
+      white-space: nowrap;
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   </style>
 </head>
 <body>
 
+<!-- DRAG GHOST -->
+<div id="dragGhost"></div>
+
 <!-- NEW PAGE MODAL -->
 <div class="modal-overlay" id="newPageModal">
   <div class="modal">
-    <h3>📄 Nueva Hoja</h3>
+    <h3>Nueva Hoja</h3>
     <label>
       <input type="checkbox" id="keepDropdownsCheck" />
-      Mantener dropdowns (boxes vacíos)
+      Mantener dropdowns (boxes vacios)
     </label>
     <div class="modal-btns">
       <button onclick="closeNewPageModal()">Cancelar</button>
@@ -436,7 +517,7 @@
 <div class="app-wrapper" id="appWrapper">
   <!-- TOP BAR -->
   <div class="topbar">
-    <span class="topbar-title">📝 Notas</span>
+    <span class="topbar-title">Notas</span>
     <div class="topbar-right">
 
       <!-- Dark/light toggle -->
@@ -475,7 +556,7 @@
   <!-- TOOLBAR -->
   <div class="toolbar" id="toolbar">
     <button onclick="fmt('bold')" title="Negrita"><b>B</b></button>
-    <button onclick="fmt('italic')" title="Itálica"><i>I</i></button>
+    <button onclick="fmt('italic')" title="Italica"><i>I</i></button>
     <button onclick="fmt('underline')" title="Subrayado"><u>U</u></button>
     <div class="toolbar-sep"></div>
     <select id="fontFamily" onchange="applyFont()" title="Tipo de fuente">
@@ -487,10 +568,10 @@
       <option value="Verdana">Verdana</option>
       <option value="monospace">Monospace</option>
     </select>
-    <input type="number" id="fontSize" min="8" max="72" value="15" title="Tamaño de fuente" onchange="applyFontSize()" style="width:52px" />
+    <input type="number" id="fontSize" min="8" max="72" value="15" title="Tamano de fuente" onchange="applyFontSize()" style="width:52px" />
     <div class="toolbar-sep"></div>
-    <button onclick="fmt('insertUnorderedList')" title="Lista">☰</button>
-    <button onclick="fmt('insertOrderedList')" title="Lista numerada">①</button>
+    <button onclick="fmt('insertUnorderedList')" title="Lista">Lista</button>
+    <button onclick="fmt('insertOrderedList')" title="Lista numerada">1. Lista</button>
   </div>
 
   <!-- DROPDOWNS LIST -->
@@ -505,8 +586,7 @@
 // ============================================================
 let pages = [];       // [{id, name, dropdowns:[{id,title,content,open}]}]
 let currentPage = 0;
-let dragSrcIndex = null;
-let activeNoteEl = null; // currently focused contenteditable
+let activeNoteEl = null;
 
 // ============================================================
 //  INIT
@@ -567,23 +647,72 @@ function renderPagesNav() {
   pages.forEach((p, i) => {
     const tab = document.createElement('div');
     tab.className = 'page-tab' + (i === currentPage ? ' active' : '');
-    tab.textContent = p.name;
-    tab.onclick = () => switchPage(i);
+    tab.title = 'Doble clic para renombrar';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'page-tab-name';
+    nameSpan.textContent = p.name;
+    nameSpan.style.overflow = 'hidden';
+    nameSpan.style.textOverflow = 'ellipsis';
+    nameSpan.style.whiteSpace = 'nowrap';
+
+    tab.appendChild(nameSpan);
+
+    // single click = switch page
+    tab.addEventListener('click', (e) => {
+      if (e.detail === 1) {
+        // small delay to allow dblclick to cancel
+        tab._clickTimer = setTimeout(() => switchPage(i), 180);
+      }
+    });
+
+    // double click = rename
+    tab.addEventListener('dblclick', () => {
+      clearTimeout(tab._clickTimer);
+      startRenameTab(tab, nameSpan, i);
+    });
+
     nav.appendChild(tab);
+  });
+}
+
+function startRenameTab(tab, nameSpan, pageIndex) {
+  if (tab.querySelector('input')) return; // already editing
+  const input = document.createElement('input');
+  input.className = 'page-tab-input';
+  input.value = pages[pageIndex].name;
+  input.style.width = Math.max(input.value.length * 8, 50) + 'px';
+  nameSpan.replaceWith(input);
+  input.focus();
+  input.select();
+
+  const commit = () => {
+    const val = input.value.trim() || pages[pageIndex].name;
+    pages[pageIndex].name = val;
+    const newSpan = document.createElement('span');
+    newSpan.className = 'page-tab-name';
+    newSpan.textContent = val;
+    newSpan.style.overflow = 'hidden';
+    newSpan.style.textOverflow = 'ellipsis';
+    newSpan.style.whiteSpace = 'nowrap';
+    input.replaceWith(newSpan);
+    save();
+  };
+  input.addEventListener('blur', commit, { once: true });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { input.value = pages[pageIndex].name; input.blur(); }
+    // auto-grow width
+    setTimeout(() => { input.style.width = Math.max(input.value.length * 8, 50) + 'px'; }, 0);
   });
 }
 
 function renderDropdowns() {
   const list = document.getElementById('dropdownsList');
-  const emptyMsg = document.getElementById('emptyMsg');
   list.innerHTML = '';
   const page = pages[currentPage];
   if (!page || page.dropdowns.length === 0) {
-    if (!emptyMsg) {
-      list.innerHTML = '<p class="no-dropdowns-msg" id="emptyMsg">No hay dropdowns. Presiona <b>+</b> para agregar uno.</p>';
-    } else {
-      list.appendChild(emptyMsg);
-    }
+    list.innerHTML = '<p class="no-dropdowns-msg" id="emptyMsg">No hay dropdowns. Presiona <b>+</b> para agregar uno.</p>';
     return;
   }
   page.dropdowns.forEach((dd, i) => {
@@ -594,7 +723,6 @@ function renderDropdowns() {
 function buildDropdownEl(dd, index) {
   const wrap = document.createElement('div');
   wrap.className = 'dropdown-wrap';
-  wrap.draggable = false;
   wrap.dataset.index = index;
 
   // Left controls
@@ -609,22 +737,13 @@ function buildDropdownEl(dd, index) {
   const dragHandle = document.createElement('div');
   dragHandle.className = 'dd-drag';
   dragHandle.title = 'Arrastrar para ordenar';
-  dragHandle.innerHTML = '⠿';
-  dragHandle.addEventListener('mousedown', () => {
-    wrap.draggable = true;
-  });
-  dragHandle.addEventListener('mouseup', () => {
-    wrap.draggable = false;
-  });
+  dragHandle.innerHTML = '&#8942;&#8942;';
 
   controls.appendChild(dot);
   controls.appendChild(dragHandle);
 
-  // Drag events on wrap
-  wrap.addEventListener('dragstart', onDragStart);
-  wrap.addEventListener('dragover', onDragOver);
-  wrap.addEventListener('drop', onDrop);
-  wrap.addEventListener('dragend', onDragEnd);
+  // Pointer-based drag
+  setupDrag(wrap, dragHandle, index);
 
   // Dropdown structure
   const dropdown = document.createElement('div');
@@ -640,13 +759,13 @@ function buildDropdownEl(dd, index) {
     save();
   });
 
-  const trigger = document.createElement('label');
+  // The trigger is a div (not label) so we can control toggle manually
+  const trigger = document.createElement('div');
   trigger.className = 'dd-trigger';
-  trigger.htmlFor = 'state-' + dd.id;
 
   const arrow = document.createElement('span');
   arrow.className = 'dd-arrow';
-  arrow.textContent = '›';
+  arrow.textContent = '\u203a';
 
   const titleInput = document.createElement('input');
   titleInput.className = 'dd-title';
@@ -654,13 +773,39 @@ function buildDropdownEl(dd, index) {
   titleInput.value = dd.title || 'Nuevo dropdown';
   titleInput.readOnly = true;
   titleInput.spellcheck = false;
-  titleInput.addEventListener('click', e => e.stopPropagation());
   titleInput.addEventListener('change', () => { dd.title = titleInput.value; save(); });
-  titleInput.addEventListener('blur', () => { dd.title = titleInput.value; save(); });
+  titleInput.addEventListener('blur', () => { dd.title = titleInput.value; titleInput.readOnly = true; save(); });
+
+  // Click on title input: if readonly, let trigger handle toggle; if editing, stop propagation
+  titleInput.addEventListener('click', (e) => {
+    if (!titleInput.readOnly) { e.stopPropagation(); }
+    // if readonly, fall through to trigger
+  });
+
+  // Double-click on title to rename
+  titleInput.addEventListener('dblclick', (e) => {
+    e.stopPropagation();
+    titleInput.readOnly = false;
+    titleInput.focus();
+    titleInput.select();
+  });
+
+  // Clicking anywhere on the trigger toggles the dropdown
+  trigger.addEventListener('click', (e) => {
+    if (!titleInput.readOnly) return; // don't toggle while renaming
+    stateInput.checked = !stateInput.checked;
+    dd.open = stateInput.checked;
+    save();
+  });
 
   trigger.appendChild(arrow);
   trigger.appendChild(titleInput);
 
+  // Body with animated grid row
+  const ddBody = document.createElement('div');
+  ddBody.className = 'dd-body';
+  const ddBodyInner = document.createElement('div');
+  ddBodyInner.className = 'dd-body-inner';
   const ddList = document.createElement('div');
   ddList.className = 'dd-list';
 
@@ -670,43 +815,38 @@ function buildDropdownEl(dd, index) {
   noteArea.contentEditable = 'true';
   noteArea.spellcheck = true;
   noteArea.innerHTML = dd.content || '';
-  autoResize(noteArea);
 
-  noteArea.addEventListener('focus', () => {
-    activeNoteEl = noteArea;
-  });
-  noteArea.addEventListener('blur', () => {
-    dd.content = noteArea.innerHTML;
-    save();
-  });
-  noteArea.addEventListener('input', () => {
-    autoResize(noteArea);
-    dd.content = noteArea.innerHTML;
-  });
+  noteArea.addEventListener('focus', () => { activeNoteEl = noteArea; });
+  noteArea.addEventListener('blur', () => { dd.content = noteArea.innerHTML; save(); });
+  noteArea.addEventListener('input', () => { dd.content = noteArea.innerHTML; });
   noteArea.addEventListener('keydown', (e) => handlePipeRule(e, noteArea, dd));
 
   ddList.appendChild(noteArea);
+  ddBodyInner.appendChild(ddList);
+  ddBody.appendChild(ddBodyInner);
+
   dropdown.appendChild(stateInput);
   dropdown.appendChild(trigger);
-  dropdown.appendChild(ddList);
+  dropdown.appendChild(ddBody);
+
+  // Sync arrow with stateInput
+  function syncArrow() {
+    if (stateInput.checked) arrow.style.transform = 'rotate(90deg)';
+    else arrow.style.transform = '';
+  }
+  stateInput.addEventListener('change', syncArrow);
+  syncArrow();
+
   wrap.appendChild(controls);
   wrap.appendChild(dropdown);
   return wrap;
 }
 
 // ============================================================
-//  AUTO RESIZE
-// ============================================================
-function autoResize(el) {
-  el.style.minHeight = '60px';
-}
-
-// ============================================================
-//  PIPE RULE  (after a sequence of digits, insert " | ")
+//  PIPE RULE
 // ============================================================
 function handlePipeRule(e, el, dd) {
   if (e.key === ' ') {
-    // Get current text of the selection's block
     const sel = window.getSelection();
     if (!sel.rangeCount) return;
     const range = sel.getRangeAt(0);
@@ -715,16 +855,13 @@ function handlePipeRule(e, el, dd) {
     const text = node.textContent;
     const cursorPos = range.startOffset;
     const textBefore = text.substring(0, cursorPos);
-    // Check if the text before cursor ends with digits (and no pipe yet in this word)
     const match = textBefore.match(/(\d+)$/);
     if (match) {
       e.preventDefault();
-      // Replace trailing digits portion to add " | "
       const digits = match[1];
       const beforeDigits = textBefore.slice(0, textBefore.length - digits.length);
       const afterCursor = text.substring(cursorPos);
       node.textContent = beforeDigits + digits + ' | ' + afterCursor;
-      // Move cursor after " | "
       const newPos = beforeDigits.length + digits.length + 3;
       const newRange = document.createRange();
       newRange.setStart(node, newPos);
@@ -742,7 +879,7 @@ function handlePipeRule(e, el, dd) {
 function fmt(cmd) {
   if (activeNoteEl) activeNoteEl.focus();
   document.execCommand(cmd, false, null);
-  if (activeNoteEl) { pages[currentPage].dropdowns.forEach(dd => {}); save(); }
+  if (activeNoteEl) save();
 }
 
 function applyFont() {
@@ -754,7 +891,6 @@ function applyFont() {
 function applyFontSize() {
   if (activeNoteEl) activeNoteEl.focus();
   const size = document.getElementById('fontSize').value;
-  // execCommand fontSize only supports 1-7, so use a workaround
   document.execCommand('fontSize', false, '7');
   const fontEls = document.querySelectorAll('font[size="7"]');
   fontEls.forEach(f => {
@@ -771,7 +907,7 @@ function addDropdown() {
   page.dropdowns.push({ id: uid(), title: 'Nuevo dropdown', content: '', open: true });
   save();
   renderDropdowns();
-  // Focus title of new dropdown for rename
+  // Focus title of new dropdown
   const wraps = document.querySelectorAll('.dropdown-wrap');
   const last = wraps[wraps.length - 1];
   if (last) {
@@ -780,7 +916,6 @@ function addDropdown() {
       titleInput.readOnly = false;
       titleInput.focus();
       titleInput.select();
-      titleInput.addEventListener('blur', () => { titleInput.readOnly = true; }, { once: true });
     }
   }
 }
@@ -794,44 +929,83 @@ function renameDropdown(index) {
   titleInput.readOnly = false;
   titleInput.focus();
   titleInput.select();
-  titleInput.addEventListener('blur', () => {
-    titleInput.readOnly = true;
-    pages[currentPage].dropdowns[index].title = titleInput.value;
-    save();
-  }, { once: true });
 }
 
 // ============================================================
-//  DRAG & DROP REORDER
+//  SMOOTH POINTER DRAG & DROP
 // ============================================================
-function onDragStart(e) {
-  dragSrcIndex = parseInt(e.currentTarget.dataset.index);
-  e.dataTransfer.effectAllowed = 'move';
-}
-function onDragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  document.querySelectorAll('.dropdown-wrap').forEach(w => w.classList.remove('drag-over'));
-  e.currentTarget.classList.add('drag-over');
-}
-function onDrop(e) {
-  e.preventDefault();
-  const targetIndex = parseInt(e.currentTarget.dataset.index);
-  if (dragSrcIndex === null || dragSrcIndex === targetIndex) return;
-  syncCurrentPageFromDOM();
-  const page = pages[currentPage];
-  const moved = page.dropdowns.splice(dragSrcIndex, 1)[0];
-  page.dropdowns.splice(targetIndex, 0, moved);
-  dragSrcIndex = null;
-  save();
-  renderDropdowns();
-}
-function onDragEnd() {
-  dragSrcIndex = null;
-  document.querySelectorAll('.dropdown-wrap').forEach(w => {
-    w.classList.remove('drag-over');
-    w.draggable = false;
+const ghost = document.getElementById('dragGhost');
+let dragState = null; // { srcIndex, ghostOffX, ghostOffY }
+
+function setupDrag(wrap, handle, index) {
+  handle.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    handle.setPointerCapture(e.pointerId);
+
+    const rect = wrap.getBoundingClientRect();
+    const titleEl = wrap.querySelector('.dd-title');
+    const title = titleEl ? titleEl.value : 'Dropdown';
+
+    ghost.textContent = title;
+    ghost.style.display = 'block';
+    ghost.style.left = (e.clientX - 20) + 'px';
+    ghost.style.top  = (e.clientY - 20) + 'px';
+
+    dragState = {
+      srcIndex: index,
+      offX: e.clientX - rect.left,
+      offY: e.clientY - rect.top
+    };
+    wrap.classList.add('dragging');
+
+    handle.addEventListener('pointermove', onPointerMove);
+    handle.addEventListener('pointerup', onPointerUp, { once: true });
+    handle.addEventListener('pointercancel', onPointerUp, { once: true });
   });
+
+  function onPointerMove(e) {
+    if (!dragState) return;
+    ghost.style.left = (e.clientX - 20) + 'px';
+    ghost.style.top  = (e.clientY - 20) + 'px';
+
+    // Highlight target wrap
+    document.querySelectorAll('.dropdown-wrap').forEach(w => w.classList.remove('drag-over'));
+    const target = getWrapAtPoint(e.clientX, e.clientY);
+    if (target && target !== wrap) target.classList.add('drag-over');
+  }
+
+  function onPointerUp(e) {
+    handle.removeEventListener('pointermove', onPointerMove);
+    ghost.style.display = 'none';
+
+    const target = getWrapAtPoint(e.clientX, e.clientY);
+    document.querySelectorAll('.dropdown-wrap').forEach(w => {
+      w.classList.remove('drag-over');
+      w.classList.remove('dragging');
+    });
+
+    if (target && dragState) {
+      const targetIndex = parseInt(target.dataset.index);
+      const srcIndex = dragState.srcIndex;
+      if (targetIndex !== srcIndex) {
+        syncCurrentPageFromDOM();
+        const page = pages[currentPage];
+        const moved = page.dropdowns.splice(srcIndex, 1)[0];
+        page.dropdowns.splice(targetIndex, 0, moved);
+        save();
+        renderDropdowns();
+      }
+    }
+    dragState = null;
+  }
+}
+
+function getWrapAtPoint(x, y) {
+  // Hide ghost temporarily to hit-test underneath
+  ghost.style.pointerEvents = 'none';
+  const el = document.elementFromPoint(x, y);
+  if (!el) return null;
+  return el.closest('.dropdown-wrap');
 }
 
 // ============================================================
@@ -846,9 +1020,13 @@ document.getElementById('themeToggle').addEventListener('change', function() {
 // ============================================================
 //  NEW PAGE
 // ============================================================
-function openNewPageModal() { document.getElementById('newPageModal').classList.add('active'); }
+function openNewPageModal() {
+  const overlay = document.getElementById('newPageModal');
+  overlay.classList.add('active');
+}
 function closeNewPageModal() {
-  document.getElementById('newPageModal').classList.remove('active');
+  const overlay = document.getElementById('newPageModal');
+  overlay.classList.remove('active');
   document.getElementById('keepDropdownsCheck').checked = false;
 }
 function confirmNewPage() {
