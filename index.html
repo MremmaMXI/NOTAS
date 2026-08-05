@@ -1554,18 +1554,14 @@ function saveChecklistMode() {
 
 function htmlToLines(html) {
   const rawSegments = html
-    .replace(/<\/div>\s*<div[^>]*>/gi, '
-')
-    .replace(/<div[^>]*>/gi, '
-')
+    .replace(/<\/div>\s*<div[^>]*>/gi, '\n')
+    .replace(/<div[^>]*>/gi, '\n')
     .replace(/<\/div>/gi, '')
-    .replace(/<br\s*\/?>/gi, '
-')
-    .split('
-');
+    .replace(/<br\s*\/?>/gi, '\n')
+    .split('\n');
 
   return rawSegments.map(seg => {
-    const checked = /<s[^>]*>/i.test(seg) || /line-through/i.test(seg);
+    const checked = /<s[^>]*>/i.test(seg) || /line-through/i.test(seg);
     const tmp = document.createElement('div');
     tmp.innerHTML = seg;
     const text = tmp.textContent.trim();
