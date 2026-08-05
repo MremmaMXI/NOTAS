@@ -1098,14 +1098,16 @@ function setupDrag(wrap, handle) {
     ghost.style.left = (e.clientX + 12) + 'px';
     ghost.style.top  = (e.clientY - 16) + 'px';
 
-    // Read live DOM index instead of stale closure value
+    // Record srcIndex from live DOM order at drag start
     const list = document.getElementById('dropdownsList');
     const allWraps = Array.from(list.querySelectorAll('.dropdown-wrap'));
-    dragState = { srcIndex: allWraps.indexOf(wrap), srcWrap: wrap };
+    const srcIndex = allWraps.indexOf(wrap);
+    dragState = { srcIndex, srcWrap: wrap };
     wrap.classList.add('dragging');
 
     // create drop indicator
     dropIndicator = document.createElement('div');
+    dropIndicator.id = 'dropIndicator';
     dropIndicator.className = 'dd-drop-indicator';
 
     handle.addEventListener('pointermove', onPointerMove);
@@ -1113,33 +1115,40 @@ function setupDrag(wrap, handle) {
     handle.addEventListener('pointercancel', onPointerUp, { once: true });
   });
 
+  function getInsertTarget(clientY) {
+    const list = document.getElementById('dropdownsList');
+    const wraps = Array.from(list.querySelectorAll('.dropdown-wrap'));
+    // Find target wrap by rect (skip the dragging wrap)
+    for (const w of wraps) {
+      if (w === dragState.srcWrap) continue;
+      const rect = w.getBoundingClientRect();
+      if (clientY < rect.top + rect.height / 2) {
+        return { wrap: w, position: 'before' };
+      }
+      if (clientY < rect.bottom) {
+        return { wrap: w, position: 'after' };
+      }
+    }
+    return null; // insert at end
+  }
+
   function onPointerMove(e) {
     if (!dragState) return;
     ghost.style.left = (e.clientX + 12) + 'px';
     ghost.style.top  = (e.clientY - 16) + 'px';
 
-    // Remove old indicator
     if (dropIndicator.parentNode) dropIndicator.parentNode.removeChild(dropIndicator);
 
-    // Find insert position using all sibling wraps
     const list = document.getElementById('dropdownsList');
-    const wraps = Array.from(list.querySelectorAll('.dropdown-wrap'));
-    let insertBefore = null;
-    for (const w of wraps) {
-      if (w === wrap) continue;
-      const rect = w.getBoundingClientRect();
-      if (e.clientY < rect.top + rect.height / 2) { insertBefore = w; break; }
-    }
-    if (insertBefore) {
-      list.insertBefore(dropIndicator, insertBefore);
-    } else {
-      const lastWrap = wraps[wraps.length - 1];
-      if (lastWrap && lastWrap !== wrap) {
-        lastWrap.after(dropIndicator);
-      } else if (wraps.length === 1) {
-        // only one item, append to list
-        list.appendChild(dropIndicator);
+    const target = getInsertTarget(e.clientY);
+    if (target) {
+      if (target.position === 'before') {
+        list.insertBefore(dropIndicator, target.wrap);
+      } else {
+        target.wrap.after(dropIndicator);
       }
+    } else {
+      list.appendChild(dropIndicator);
     }
   }
 
@@ -1147,35 +1156,47 @@ function setupDrag(wrap, handle) {
     handle.removeEventListener('pointermove', onPointerMove);
     ghost.style.display = 'none';
 
-    if (dropIndicator && dropIndicator.parentNode && dragState) {
+    if (dragState) {
       const list = document.getElementById('dropdownsList');
       const wraps = Array.from(list.querySelectorAll('.dropdown-wrap'));
 
-      // Determine target index: which wrap comes right after the indicator
-      let targetIndex = wraps.length; // default: end
-      for (let i = 0; i < wraps.length; i++) {
-        // DOCUMENT_POSITION_FOLLOWING means wraps[i] comes after indicator
-        if (dropIndicator.compareDocumentPosition(wraps[i]) & Node.DOCUMENT_POSITION_FOLLOWING) {
-          targetIndex = i;
-          break;
-        }
-      }
-      dropIndicator.parentNode.removeChild(dropIndicator);
+      // Find target using rect-based method (same as pointermove)
+      const target = getInsertTarget(e.clientY);
 
-      // Re-read src index from live DOM in case renders happened
+      // Remove drop indicator before reading indices
+      if (dropIndicator && dropIndicator.parentNode) {
+        dropIndicator.parentNode.removeChild(dropIndicator);
+      }
+
+      // Get live src index
       const srcIndex = wraps.indexOf(dragState.srcWrap);
 
-      if (srcIndex !== -1 && targetIndex !== srcIndex && targetIndex !== srcIndex + 1) {
-        syncCurrentPageFromDOM();
-        const page = pages[currentPage];
-        const moved = page.dropdowns.splice(srcIndex, 1)[0];
-        const adjustedTarget = targetIndex > srcIndex ? targetIndex - 1 : targetIndex;
-        page.dropdowns.splice(adjustedTarget, 0, moved);
-        save();
-        renderDropdowns();
+      if (srcIndex !== -1) {
+        let insertAt;
+        if (!target) {
+          // insert at end: after all wraps
+          insertAt = wraps.length;
+        } else {
+          const targetIdx = wraps.indexOf(target.wrap);
+          insertAt = target.position === 'before' ? targetIdx : targetIdx + 1;
+        }
+
+        // Convert insertAt to final data index accounting for removal of src
+        const adjustedTarget = insertAt > srcIndex ? insertAt - 1 : insertAt;
+
+        if (adjustedTarget !== srcIndex) {
+          syncCurrentPageFromDOM();
+          const page = pages[currentPage];
+          const moved = page.dropdowns.splice(srcIndex, 1)[0];
+          page.dropdowns.splice(adjustedTarget, 0, moved);
+          save();
+          renderDropdowns();
+        }
       }
-    } else if (dropIndicator && dropIndicator.parentNode) {
-      dropIndicator.parentNode.removeChild(dropIndicator);
+    } else {
+      if (dropIndicator && dropIndicator.parentNode) {
+        dropIndicator.parentNode.removeChild(dropIndicator);
+      }
     }
 
     document.querySelectorAll('.dropdown-wrap').forEach(w => {
