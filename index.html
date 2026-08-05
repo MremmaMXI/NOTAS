@@ -390,7 +390,8 @@
     .dd-arrow {
       display: inline-block;
       transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
-      color: var(--text-muted);
+      color: inherit;
+      opacity: 0.75;
       font-size: 20px;
       line-height: 1;
       margin-right: 2px;
@@ -685,7 +686,7 @@
   <div class="topbar">
     <span class="topbar-title">Notas</span>
     <div class="topbar-right">
-      <button class="accent-btn" id="accentBtn" title="Colores de interfaz" type="button">🎨</button>
+      <button class="accent-btn" id="accentBtn" title="Colores de interfaz" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="8" cy="10" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="7" r="1.5" fill="currentColor" stroke="none"/><circle cx="16" cy="10" r="1.5" fill="currentColor" stroke="none"/><path d="M12 19c-1.5 0-4-1.5-4-4 0-1 .5-2 2-2h4c1.5 0 2 1 2 2 0 2.5-2.5 4-4 4z"/></svg></button>
       <div class="toggle-switch" title="Modo claro/oscuro">
         <label class="switch-label">
           <input type="checkbox" class="checkbox" id="themeToggle" />
@@ -788,7 +789,7 @@ function save() {
 function syncCurrentPageFromDOM() {
   const page = pages[currentPage];
   if (!page) return;
-  document.querySelectorAll('.dropdown-wrap').forEach((wrap, i) => {
+  document.querySelectorAll('.dropdown-wrap:not(.removing)').forEach((wrap, i) => {
     if (!page.dropdowns[i]) return;
     const titleEl = wrap.querySelector('.dd-title');
     const noteEl = wrap.querySelector('.note-area');
@@ -960,7 +961,7 @@ function buildDropdownEl(dd, index) {
   colorBtn.type = 'button';
   colorBtn.className = 'dd-color-btn';
   colorBtn.title = 'Colores del encabezado';
-  colorBtn.textContent = '🎨';
+  colorBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 19.5A2.5 2.5 0 0 0 4.5 22c.83 0 1.5-.67 1.5-1.5v-1A1.5 1.5 0 0 1 7.5 18H19a2 2 0 0 0 2-2 9 9 0 0 0-9-9 9 9 0 0 0-9 9 2.5 2.5 0 0 0-.5 1.5z"/><circle cx="7.5" cy="12.5" r="1" fill="currentColor" stroke="none"/><circle cx="10.5" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="13.5" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="16.5" cy="12.5" r="1" fill="currentColor" stroke="none"/></svg>';
   colorBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     openDropdownColorPopover(dd, colorBtn, trigger, titleInput);
@@ -1275,6 +1276,7 @@ function openDropdownColorPopover(dd, buttonEl, triggerEl, titleInput) {
     <label class="popover-color-row"><span>Fondo</span><input type="color" value="${toColorInputValue(dd.headerBg, '#2c2c2c')}" data-role="bg"></label>
     <label class="popover-color-row"><span>Texto</span><input type="color" value="${toColorInputValue(dd.headerColor, '#e8e8e8')}" data-role="color"></label>
     <div class="popover-actions">
+      <button type="button" data-action="reset">Restablecer</button>
       <button type="button" data-action="cancel">Cancelar</button>
       <button type="button" class="primary-btn" data-action="ok">OK</button>
     </div>
@@ -1296,6 +1298,15 @@ function openDropdownColorPopover(dd, buttonEl, triggerEl, titleInput) {
   registerPopoverCleanup(cleanup);
   pop._cleanup = cleanup;
 
+  pop.querySelector('[data-action="reset"]').addEventListener('click', () => {
+    dd.headerBg = undefined;
+    dd.headerColor = undefined;
+    triggerEl.style.background = '';
+    triggerEl.style.color = '';
+    titleInput.style.color = '';
+    save();
+    closeDropdownColorPopover();
+  });
   pop.querySelector('[data-action="cancel"]').addEventListener('click', () => closeDropdownColorPopover());
   pop.querySelector('[data-action="ok"]').addEventListener('click', () => {
     const bg = pop.querySelector('[data-role="bg"]').value;
