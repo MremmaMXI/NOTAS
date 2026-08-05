@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Notas App</title>
   <style>
-    /* ===== VARIABLES & RESET ===== */
     :root[data-theme="dark"] {
       --bg: #212121;
       --surface: #2c2c2c;
@@ -39,7 +38,6 @@
       transition: background 0.3s, color 0.3s;
     }
 
-    /* ===== LAYOUT ===== */
     .app-wrapper {
       display: flex;
       flex-direction: column;
@@ -48,12 +46,11 @@
       max-width: 900px;
       margin: 0 auto;
       resize: horizontal;
-      overflow: auto;
+      overflow: visible;
       min-height: 100vh;
       padding-bottom: 60px;
     }
 
-    /* ===== TOP BAR ===== */
     .topbar {
       display: flex;
       align-items: center;
@@ -68,9 +65,8 @@
       letter-spacing: 1px;
       color: var(--accent);
     }
-    .topbar-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .topbar-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; position: relative; }
 
-    /* === TOGGLE SWITCH (dark/light) === */
     .toggle-switch {
       position: relative;
       width: 70px;
@@ -112,47 +108,46 @@
       box-shadow: none;
     }
 
-    /* === ADD DROPDOWN BUTTON (circle +) === */
-    .btn-add-dropdown {
+    .btn-add-dropdown,
+    .btn-new-page,
+    .accent-btn {
       background: none;
       border: none;
       cursor: pointer;
       outline: none;
-      transition: rotate 0.3s cubic-bezier(0.34,1.56,0.64,1);
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .btn-add-dropdown:hover { rotate: 90deg; }
-    .btn-add-dropdown svg {
-      stroke: var(--text-muted);
-      fill: none;
-      transition: fill 0.3s, stroke 0.3s;
-    }
-    .btn-add-dropdown:hover svg { fill: var(--surface); stroke: var(--accent); }
-    .btn-add-dropdown:active svg { stroke: var(--text); fill: var(--accent); }
-
-    /* === NEW PAGE BUTTON (same style) === */
+    .btn-add-dropdown,
     .btn-new-page {
-      background: none;
-      border: none;
-      cursor: pointer;
-      outline: none;
       transition: rotate 0.3s cubic-bezier(0.34,1.56,0.64,1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
+    .btn-add-dropdown:hover,
     .btn-new-page:hover { rotate: 90deg; }
+    .btn-add-dropdown svg,
     .btn-new-page svg {
       stroke: var(--text-muted);
       fill: none;
       transition: fill 0.3s, stroke 0.3s;
     }
+    .btn-add-dropdown:hover svg,
     .btn-new-page:hover svg { fill: var(--surface); stroke: var(--accent); }
+    .btn-add-dropdown:active svg,
     .btn-new-page:active svg { stroke: var(--text); fill: var(--accent); }
+    .accent-btn {
+      color: var(--text-muted);
+      font-size: 20px;
+      padding: 6px;
+      border-radius: 10px;
+      transition: background 0.2s, color 0.2s, transform 0.2s;
+    }
+    .accent-btn:hover {
+      background: var(--surface);
+      color: var(--accent);
+      transform: scale(1.05);
+    }
 
-    /* ===== TOOLBAR (formatting) ===== */
     .toolbar {
       display: flex;
       align-items: center;
@@ -190,6 +185,27 @@
       padding: 4px 6px;
       font-size: 13px;
     }
+    .toolbar-color-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 8px;
+      color: var(--text);
+      font-size: 13px;
+    }
+    .toolbar-color-wrap input[type=color],
+    .popover-color-row input[type=color],
+    .accent-popover input[type=color] {
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+    }
     .toolbar-sep {
       width: 1px;
       height: 22px;
@@ -197,7 +213,6 @@
       margin: 0 2px;
     }
 
-    /* ===== DROPDOWN CONTAINER ===== */
     .dropdowns-list {
       display: flex;
       flex-direction: column;
@@ -210,12 +225,11 @@
       align-items: flex-start;
       gap: 8px;
       position: relative;
-      /* slide-in animation for new items */
       animation: slideIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
     }
     @keyframes slideIn {
       from { opacity: 0; transform: translateY(-18px) scale(0.97); }
-      to   { opacity: 1; transform: translateY(0)      scale(1);    }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     .dropdown-wrap.dragging {
@@ -228,7 +242,6 @@
       border-radius: 12px;
     }
 
-    /* Left controls */
     .dd-controls {
       display: flex;
       flex-direction: column;
@@ -269,7 +282,6 @@
       overflow: hidden;
       pointer-events: none;
     }
-    /* Drop indicator line */
     .dd-drop-indicator {
       height: 3px;
       background: var(--accent);
@@ -278,7 +290,6 @@
       transition: opacity 0.15s;
       pointer-events: none;
     }
-    /* Checklist overlay */
     .checklist-overlay {
       display: none;
       flex-direction: column;
@@ -294,6 +305,7 @@
       border-radius: 6px;
       cursor: pointer;
       transition: background 0.15s;
+      animation: clItemIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
     }
     .cl-item:hover { background: rgba(128,128,128,0.1); }
     .cl-item input[type=checkbox] {
@@ -321,9 +333,6 @@
       from { opacity: 0; transform: translateX(-14px) scale(0.97); }
       to   { opacity: 1; transform: translateX(0) scale(1); }
     }
-    .cl-item {
-      animation: clItemIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
-    }
     @keyframes clItemOut {
       from { opacity: 1; transform: scale(1); }
       to   { opacity: 0; transform: scale(0.95); }
@@ -337,7 +346,6 @@
       border-color: var(--accent);
     }
 
-    /* Dropdown itself */
     .dropdown {
       border: 1px solid var(--border);
       border-radius: 12px;
@@ -350,25 +358,15 @@
       flex: 1;
       transition: border-color 0.2s;
     }
-
-    /* Hidden checkbox still drives state */
     .dropdown input.dd-state { position: absolute; display: none; }
-
-    /* Animated body */
     .dd-body {
       display: grid;
       grid-template-rows: 0fr;
       transition: grid-template-rows 0.35s cubic-bezier(0.4,0,0.2,1);
     }
-    .dd-body-inner {
-      overflow: hidden;
-    }
-    .dropdown input.dd-state:checked ~ .dd-body {
-      grid-template-rows: 1fr;
-    }
-    .dd-list {
-      padding: 8px 12px 12px;
-    }
+    .dd-body-inner { overflow: hidden; }
+    .dropdown input.dd-state:checked ~ .dd-body { grid-template-rows: 1fr; }
+    .dd-list { padding: 8px 12px 12px; }
 
     .dd-trigger {
       cursor: pointer;
@@ -379,12 +377,13 @@
       align-items: center;
       gap: 10px;
       padding: 14px 14px;
-      position: relative;
-      z-index: 9;
+      position: sticky;
+      top: 0;
+      z-index: 10;
       background: var(--surface);
       border-radius: 12px;
       user-select: none;
-      transition: background 0.2s;
+      transition: color 0.3s, background 0.3s;
     }
     .dd-trigger:hover { background: var(--surface2); }
     .dd-arrow {
@@ -396,16 +395,14 @@
       margin-right: 2px;
       flex-shrink: 0;
     }
-    .dropdown input.dd-state:checked ~ .dd-trigger .dd-arrow {
-      transform: rotate(90deg);
-    }
+    .dropdown input.dd-state:checked ~ .dd-trigger .dd-arrow { transform: rotate(90deg); }
     .dd-title {
       flex: 1;
       font-size: 15px;
       outline: none;
       background: transparent;
       border: none;
-      color: var(--text);
+      color: inherit;
       font-family: inherit;
       font-weight: 600;
       cursor: pointer;
@@ -413,7 +410,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      transition: background 0.2s, padding 0.2s, border-radius 0.2s;
+      transition: color 0.3s, background 0.3s, padding 0.2s, border-radius 0.2s;
     }
     .dd-title:not([readonly]) {
       cursor: text;
@@ -423,8 +420,23 @@
       white-space: normal;
       overflow: visible;
     }
+    .dd-color-btn {
+      border: none;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      padding: 4px;
+      border-radius: 8px;
+      transition: background 0.2s, transform 0.2s;
+      flex-shrink: 0;
+    }
+    .dd-color-btn:hover {
+      background: rgba(128,128,128,0.15);
+      transform: scale(1.05);
+    }
 
-    /* Note area */
     .note-area {
       width: 100%;
       min-height: 60px;
@@ -440,7 +452,6 @@
       white-space: pre-wrap;
     }
 
-    /* ===== MODAL ===== */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -496,7 +507,6 @@
     .modal-btns button:hover { opacity: 0.85; transform: scale(1.04); }
     .modal-btns button:active { transform: scale(0.97); }
 
-    /* ===== PAGES NAV ===== */
     .pages-nav {
       display: flex;
       align-items: center;
@@ -562,7 +572,64 @@
     }
     .page-tab.removing { animation: tabFadeOut 0.25s cubic-bezier(0.34,1.56,0.64,1) both; }
 
-    /* Scrollbar */
+    .floating-popover {
+      position: fixed;
+      z-index: 2000;
+      min-width: 220px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.28);
+      opacity: 0;
+      transform: scale(0.96);
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .floating-popover.open {
+      opacity: 1;
+      transform: scale(1);
+      pointer-events: auto;
+    }
+    .floating-popover h4 {
+      font-size: 14px;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+    .popover-color-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+      color: var(--text);
+      font-size: 13px;
+    }
+    .popover-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .popover-actions button {
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, transform 0.2s;
+    }
+    .popover-actions button:hover { transform: scale(1.03); }
+    .popover-actions .primary-btn {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .accent-popover { min-width: 250px; }
+    .accent-popover .popover-actions { justify-content: space-between; }
+
     ::-webkit-scrollbar { width: 7px; height: 7px; border-radius: 999px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 999px; }
@@ -574,7 +641,6 @@
       padding: 40px 0 20px;
     }
 
-    /* ===== DRAG GHOST ===== */
     #dragGhost {
       position: fixed;
       pointer-events: none;
@@ -598,11 +664,8 @@
   </style>
 </head>
 <body>
-
-<!-- DRAG GHOST -->
 <div id="dragGhost"></div>
 
-<!-- NEW PAGE MODAL -->
 <div class="modal-overlay" id="newPageModal">
   <div class="modal">
     <h3>Nueva Hoja</h3>
@@ -618,20 +681,16 @@
 </div>
 
 <div class="app-wrapper" id="appWrapper">
-  <!-- TOP BAR -->
   <div class="topbar">
     <span class="topbar-title">Notas</span>
     <div class="topbar-right">
-
-      <!-- Dark/light toggle -->
+      <button class="accent-btn" id="accentBtn" title="Colores de interfaz" type="button">🎨</button>
       <div class="toggle-switch" title="Modo claro/oscuro">
         <label class="switch-label">
           <input type="checkbox" class="checkbox" id="themeToggle" />
           <span class="slider"></span>
         </label>
       </div>
-
-      <!-- Nueva hoja button -->
       <button class="btn-new-page" title="Nueva hoja" onclick="openNewPageModal()">
         <svg xmlns="http://www.w3.org/2000/svg" width="38px" height="38px" viewBox="0 0 24 24" stroke-width="1.5">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -640,8 +699,6 @@
           <line x1="9" y1="14" x2="15" y2="14"></line>
         </svg>
       </button>
-
-      <!-- Agregar dropdown button -->
       <button class="btn-add-dropdown" title="Agregar dropdown" onclick="addDropdown()">
         <svg xmlns="http://www.w3.org/2000/svg" width="38px" height="38px" viewBox="0 0 24 24" stroke-width="1.5">
           <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z"></path>
@@ -649,14 +706,11 @@
           <path d="M12 16V8"></path>
         </svg>
       </button>
-
     </div>
   </div>
 
-  <!-- PAGES NAV -->
   <div class="pages-nav" id="pagesNav"></div>
 
-  <!-- TOOLBAR -->
   <div class="toolbar" id="toolbar">
     <button onclick="fmt('bold')" title="Negrita"><b>B</b></button>
     <button onclick="fmt('italic')" title="Italica"><i>I</i></button>
@@ -673,27 +727,33 @@
     </select>
     <input type="number" id="fontSize" min="8" max="72" value="15" title="Tamano de fuente" onchange="applyFontSize()" style="width:52px" />
     <div class="toolbar-sep"></div>
+    <label class="toolbar-color-wrap" title="Color de texto">
+      <span>A</span>
+      <input type="color" id="textColorPicker" value="#000000" onchange="applyTextColor(this.value)" />
+    </label>
+    <div class="toolbar-sep"></div>
     <button id="btnChecklist" onclick="toggleChecklistMode()" title="Modo checklist">Checklist</button>
     <button id="btnChecklistDone" onclick="saveChecklistMode()" title="Guardar checklist" style="display:none">Listo</button>
   </div>
 
-  <!-- DROPDOWNS LIST -->
   <div class="dropdowns-list" id="dropdownsList">
     <p class="no-dropdowns-msg" id="emptyMsg">No hay dropdowns. Presiona <b>+</b> para agregar uno.</p>
   </div>
 </div>
 
 <script>
-// ============================================================
-//  STATE
-// ============================================================
-let pages = [];       // [{id, name, dropdowns:[{id,title,content,open}]}]
+let pages = [];
 let currentPage = 0;
 let activeNoteEl = null;
+let dropdownColorPopover = null;
+let accentPopover = null;
+let globalPopoverCleanup = null;
+let checklistActive = false;
+const ghost = document.getElementById('dragGhost');
+const DEFAULT_ACCENT = 'rgb(27,129,112)';
+let dragState = null;
+let dropIndicator = null;
 
-// ============================================================
-//  INIT
-// ============================================================
 function init() {
   const saved = localStorage.getItem('notasapp_v2');
   if (saved) {
@@ -702,21 +762,23 @@ function init() {
       pages = data.pages || [];
       currentPage = data.currentPage || 0;
       if (currentPage >= pages.length) currentPage = 0;
-    } catch(e) { pages = []; }
+    } catch(e) {
+      pages = [];
+    }
   }
   if (pages.length === 0) {
     pages.push({ id: uid(), name: 'Hoja 1', dropdowns: [] });
     currentPage = 0;
   }
+  normalizeDropdownData();
   const savedTheme = localStorage.getItem('notasapp_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', savedTheme);
   document.getElementById('themeToggle').checked = savedTheme === 'light';
+  applySavedAccent(savedTheme);
+  setupAccentButton();
   renderAll();
 }
 
-// ============================================================
-//  SAVE
-// ============================================================
 function save() {
   syncCurrentPageFromDOM();
   localStorage.setItem('notasapp_v2', JSON.stringify({ pages, currentPage }));
@@ -736,10 +798,8 @@ function syncCurrentPageFromDOM() {
   });
 }
 
-// ============================================================
-//  RENDER
-// ============================================================
 function renderAll() {
+  closeDropdownColorPopover(true);
   renderPagesNav();
   renderDropdowns();
 }
@@ -758,15 +818,13 @@ function renderPagesNav() {
     nameSpan.style.overflow = 'hidden';
     nameSpan.style.textOverflow = 'ellipsis';
     nameSpan.style.whiteSpace = 'nowrap';
-
     tab.appendChild(nameSpan);
 
-    // delete button
     if (pages.length > 1) {
       const delBtn = document.createElement('button');
       delBtn.className = 'page-tab-del';
       delBtn.title = 'Eliminar hoja';
-      delBtn.textContent = '\u00d7';
+      delBtn.textContent = '×';
       delBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         deletePage(i, tab);
@@ -774,25 +832,19 @@ function renderPagesNav() {
       tab.appendChild(delBtn);
     }
 
-    // single click = switch page
     tab.addEventListener('click', (e) => {
-      if (e.detail === 1) {
-        tab._clickTimer = setTimeout(() => switchPage(i), 180);
-      }
+      if (e.detail === 1) tab._clickTimer = setTimeout(() => switchPage(i), 180);
     });
-
-    // double click = rename
     tab.addEventListener('dblclick', () => {
       clearTimeout(tab._clickTimer);
       startRenameTab(tab, nameSpan, i);
     });
-
     nav.appendChild(tab);
   });
 }
 
 function startRenameTab(tab, nameSpan, pageIndex) {
-  if (tab.querySelector('input')) return; // already editing
+  if (tab.querySelector('input')) return;
   const input = document.createElement('input');
   input.className = 'page-tab-input';
   input.value = pages[pageIndex].name;
@@ -816,8 +868,10 @@ function startRenameTab(tab, nameSpan, pageIndex) {
   input.addEventListener('blur', commit, { once: true });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') input.blur();
-    if (e.key === 'Escape') { input.value = pages[pageIndex].name; input.blur(); }
-    // auto-grow width
+    if (e.key === 'Escape') {
+      input.value = pages[pageIndex].name;
+      input.blur();
+    }
     setTimeout(() => { input.style.width = Math.max(input.value.length * 8, 50) + 'px'; }, 0);
   });
 }
@@ -831,6 +885,8 @@ function renderDropdowns() {
     return;
   }
   page.dropdowns.forEach((dd, i) => {
+    if (!Object.prototype.hasOwnProperty.call(dd, 'headerBg')) dd.headerBg = undefined;
+    if (!Object.prototype.hasOwnProperty.call(dd, 'headerColor')) dd.headerColor = undefined;
     list.appendChild(buildDropdownEl(dd, i));
   });
 }
@@ -840,7 +896,6 @@ function buildDropdownEl(dd, index) {
   wrap.className = 'dropdown-wrap';
   wrap.dataset.index = index;
 
-  // Left controls
   const controls = document.createElement('div');
   controls.className = 'dd-controls';
 
@@ -852,16 +907,13 @@ function buildDropdownEl(dd, index) {
   const delBtn = document.createElement('button');
   delBtn.className = 'dd-del';
   delBtn.title = 'Eliminar dropdown';
-  delBtn.textContent = '\u00d7';
+  delBtn.textContent = '×';
   delBtn.addEventListener('click', () => deleteDropdown(index, wrap));
 
   controls.appendChild(dragHandle);
   controls.appendChild(delBtn);
-
-  // Pointer-based drag
   setupDrag(wrap, dragHandle);
 
-  // Dropdown structure
   const dropdown = document.createElement('div');
   dropdown.className = 'dropdown';
 
@@ -875,13 +927,14 @@ function buildDropdownEl(dd, index) {
     save();
   });
 
-  // The trigger is a div (not label) so we can control toggle manually
   const trigger = document.createElement('div');
   trigger.className = 'dd-trigger';
+  if (dd.headerBg) trigger.style.background = dd.headerBg;
+  if (dd.headerColor) trigger.style.color = dd.headerColor;
 
   const arrow = document.createElement('span');
   arrow.className = 'dd-arrow';
-  arrow.textContent = '\u203a';
+  arrow.textContent = '›';
 
   const titleInput = document.createElement('input');
   titleInput.className = 'dd-title';
@@ -889,16 +942,12 @@ function buildDropdownEl(dd, index) {
   titleInput.value = dd.title || 'Nuevo dropdown';
   titleInput.readOnly = true;
   titleInput.spellcheck = false;
+  if (dd.headerColor) titleInput.style.color = dd.headerColor;
   titleInput.addEventListener('change', () => { dd.title = titleInput.value; save(); });
   titleInput.addEventListener('blur', () => { dd.title = titleInput.value; titleInput.readOnly = true; save(); });
-
-  // Click on title input: if readonly, let trigger handle toggle; if editing, stop propagation
   titleInput.addEventListener('click', (e) => {
-    if (!titleInput.readOnly) { e.stopPropagation(); }
-    // if readonly, fall through to trigger
+    if (!titleInput.readOnly) e.stopPropagation();
   });
-
-  // Double-click on title to rename
   titleInput.addEventListener('dblclick', (e) => {
     e.stopPropagation();
     titleInput.readOnly = false;
@@ -906,9 +955,19 @@ function buildDropdownEl(dd, index) {
     titleInput.select();
   });
 
-  // Clicking anywhere on the trigger toggles the dropdown
+  const colorBtn = document.createElement('button');
+  colorBtn.type = 'button';
+  colorBtn.className = 'dd-color-btn';
+  colorBtn.title = 'Colores del encabezado';
+  colorBtn.textContent = '🎨';
+  colorBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openDropdownColorPopover(dd, colorBtn, trigger, titleInput);
+  });
+
   trigger.addEventListener('click', (e) => {
-    if (!titleInput.readOnly) return; // don't toggle while renaming
+    if (e.target.closest('.dd-color-btn')) return;
+    if (!titleInput.readOnly) return;
     stateInput.checked = !stateInput.checked;
     dd.open = stateInput.checked;
     save();
@@ -916,8 +975,8 @@ function buildDropdownEl(dd, index) {
 
   trigger.appendChild(arrow);
   trigger.appendChild(titleInput);
+  trigger.appendChild(colorBtn);
 
-  // Body with animated grid row
   const ddBody = document.createElement('div');
   ddBody.className = 'dd-body';
   const ddBodyInner = document.createElement('div');
@@ -925,19 +984,16 @@ function buildDropdownEl(dd, index) {
   const ddList = document.createElement('div');
   ddList.className = 'dd-list';
 
-  // Note area (contenteditable)
   const noteArea = document.createElement('div');
   noteArea.className = 'note-area';
   noteArea.contentEditable = 'true';
   noteArea.spellcheck = true;
   noteArea.innerHTML = dd.content || '';
-
   noteArea.addEventListener('focus', () => { activeNoteEl = noteArea; });
   noteArea.addEventListener('blur', () => { dd.content = noteArea.innerHTML; save(); });
   noteArea.addEventListener('input', () => { dd.content = noteArea.innerHTML; });
   noteArea.addEventListener('keydown', (e) => handlePipeRule(e, noteArea, dd));
 
-  // Checklist overlay
   const clOverlay = document.createElement('div');
   clOverlay.className = 'checklist-overlay';
 
@@ -950,10 +1006,8 @@ function buildDropdownEl(dd, index) {
   dropdown.appendChild(trigger);
   dropdown.appendChild(ddBody);
 
-  // Sync arrow with stateInput
   function syncArrow() {
-    if (stateInput.checked) arrow.style.transform = 'rotate(90deg)';
-    else arrow.style.transform = '';
+    arrow.style.transform = stateInput.checked ? 'rotate(90deg)' : '';
   }
   stateInput.addEventListener('change', syncArrow);
   syncArrow();
@@ -963,9 +1017,6 @@ function buildDropdownEl(dd, index) {
   return wrap;
 }
 
-// ============================================================
-//  PIPE RULE
-// ============================================================
 function handlePipeRule(e, el, dd) {
   if (e.key === ' ') {
     const sel = window.getSelection();
@@ -994,9 +1045,6 @@ function handlePipeRule(e, el, dd) {
   }
 }
 
-// ============================================================
-//  FORMAT (toolbar)
-// ============================================================
 function fmt(cmd) {
   if (activeNoteEl) activeNoteEl.focus();
   document.execCommand(cmd, false, null);
@@ -1020,15 +1068,18 @@ function applyFontSize() {
   });
 }
 
-// ============================================================
-//  ADD / RENAME DROPDOWN
-// ============================================================
+function applyTextColor(value) {
+  if (!activeNoteEl) return;
+  activeNoteEl.focus();
+  document.execCommand('foreColor', false, value);
+  save();
+}
+
 function addDropdown() {
   const page = pages[currentPage];
-  page.dropdowns.push({ id: uid(), title: 'Nuevo dropdown', content: '', open: true });
+  page.dropdowns.push({ id: uid(), title: 'Nuevo dropdown', content: '', open: true, headerBg: undefined, headerColor: undefined });
   save();
   renderDropdowns();
-  // Focus title of new dropdown
   const wraps = document.querySelectorAll('.dropdown-wrap');
   const last = wraps[wraps.length - 1];
   if (last) {
@@ -1052,9 +1103,6 @@ function renameDropdown(index) {
   titleInput.select();
 }
 
-// ============================================================
-//  DELETE PAGE / DROPDOWN
-// ============================================================
 function deletePage(i, tabEl) {
   if (pages.length <= 1) return;
   tabEl.classList.add('removing');
@@ -1078,13 +1126,6 @@ function deleteDropdown(index, wrapEl) {
   }, 320);
 }
 
-// ============================================================
-//  SMOOTH POINTER DRAG & DROP
-// ============================================================
-const ghost = document.getElementById('dragGhost');
-let dragState = null;
-let dropIndicator = null;
-
 function setupDrag(wrap, handle) {
   handle.addEventListener('pointerdown', (e) => {
     e.preventDefault();
@@ -1096,16 +1137,14 @@ function setupDrag(wrap, handle) {
     ghost.textContent = title;
     ghost.style.display = 'block';
     ghost.style.left = (e.clientX + 12) + 'px';
-    ghost.style.top  = (e.clientY - 16) + 'px';
+    ghost.style.top = (e.clientY - 16) + 'px';
 
-    // Record srcIndex from live DOM order at drag start
     const list = document.getElementById('dropdownsList');
     const allWraps = Array.from(list.querySelectorAll('.dropdown-wrap'));
     const srcIndex = allWraps.indexOf(wrap);
-    dragState = { srcIndex, srcWrap: wrap };
+    dragState = { srcIndex, srcWrap: wrap, dropTarget: null };
     wrap.classList.add('dragging');
 
-    // create drop indicator
     dropIndicator = document.createElement('div');
     dropIndicator.id = 'dropIndicator';
     dropIndicator.className = 'dd-drop-indicator';
@@ -1118,72 +1157,52 @@ function setupDrag(wrap, handle) {
   function getInsertTarget(clientY) {
     const list = document.getElementById('dropdownsList');
     const wraps = Array.from(list.querySelectorAll('.dropdown-wrap'));
-    // Find target wrap by rect (skip the dragging wrap)
     for (const w of wraps) {
       if (w === dragState.srcWrap) continue;
       const rect = w.getBoundingClientRect();
-      if (clientY < rect.top + rect.height / 2) {
-        return { wrap: w, position: 'before' };
-      }
-      if (clientY < rect.bottom) {
-        return { wrap: w, position: 'after' };
-      }
+      if (clientY < rect.top + rect.height / 2) return { wrap: w, position: 'before' };
+      if (clientY < rect.bottom) return { wrap: w, position: 'after' };
     }
-    return null; // insert at end
+    return null;
   }
 
   function onPointerMove(e) {
     if (!dragState) return;
     ghost.style.left = (e.clientX + 12) + 'px';
-    ghost.style.top  = (e.clientY - 16) + 'px';
+    ghost.style.top = (e.clientY - 16) + 'px';
 
     if (dropIndicator.parentNode) dropIndicator.parentNode.removeChild(dropIndicator);
 
     const list = document.getElementById('dropdownsList');
     const target = getInsertTarget(e.clientY);
+    dragState.dropTarget = target;
     if (target) {
-      if (target.position === 'before') {
-        list.insertBefore(dropIndicator, target.wrap);
-      } else {
-        target.wrap.after(dropIndicator);
-      }
+      if (target.position === 'before') list.insertBefore(dropIndicator, target.wrap);
+      else target.wrap.after(dropIndicator);
     } else {
       list.appendChild(dropIndicator);
     }
   }
 
-  function onPointerUp(e) {
+  function onPointerUp() {
     handle.removeEventListener('pointermove', onPointerMove);
     ghost.style.display = 'none';
 
     if (dragState) {
       const list = document.getElementById('dropdownsList');
+      if (dropIndicator && dropIndicator.parentNode) dropIndicator.parentNode.removeChild(dropIndicator);
       const wraps = Array.from(list.querySelectorAll('.dropdown-wrap'));
-
-      // Find target using rect-based method (same as pointermove)
-      const target = getInsertTarget(e.clientY);
-
-      // Remove drop indicator before reading indices
-      if (dropIndicator && dropIndicator.parentNode) {
-        dropIndicator.parentNode.removeChild(dropIndicator);
-      }
-
-      // Get live src index
+      const target = dragState.dropTarget || null;
       const srcIndex = wraps.indexOf(dragState.srcWrap);
 
       if (srcIndex !== -1) {
         let insertAt;
-        if (!target) {
-          // insert at end: after all wraps
-          insertAt = wraps.length;
-        } else {
+        if (!target) insertAt = wraps.length;
+        else {
           const targetIdx = wraps.indexOf(target.wrap);
           insertAt = target.position === 'before' ? targetIdx : targetIdx + 1;
         }
-
-        // Convert insertAt to final data index accounting for removal of src
         const adjustedTarget = insertAt > srcIndex ? insertAt - 1 : insertAt;
-
         if (adjustedTarget !== srcIndex) {
           syncCurrentPageFromDOM();
           const page = pages[currentPage];
@@ -1193,10 +1212,8 @@ function setupDrag(wrap, handle) {
           renderDropdowns();
         }
       }
-    } else {
-      if (dropIndicator && dropIndicator.parentNode) {
-        dropIndicator.parentNode.removeChild(dropIndicator);
-      }
+    } else if (dropIndicator && dropIndicator.parentNode) {
+      dropIndicator.parentNode.removeChild(dropIndicator);
     }
 
     document.querySelectorAll('.dropdown-wrap').forEach(w => {
@@ -1208,21 +1225,199 @@ function setupDrag(wrap, handle) {
   }
 }
 
-// ============================================================
-//  THEME
-// ============================================================
+function normalizeDropdownData() {
+  pages.forEach(page => {
+    page.dropdowns = (page.dropdowns || []).map(dd => ({
+      ...dd,
+      headerBg: Object.prototype.hasOwnProperty.call(dd, 'headerBg') ? dd.headerBg : undefined,
+      headerColor: Object.prototype.hasOwnProperty.call(dd, 'headerColor') ? dd.headerColor : undefined
+    }));
+  });
+}
+
+function setPopoverPosition(popover, anchorEl) {
+  const rect = anchorEl.getBoundingClientRect();
+  const top = rect.bottom + 8;
+  let left = rect.left;
+  const maxLeft = window.innerWidth - popover.offsetWidth - 12;
+  if (left > maxLeft) left = Math.max(12, maxLeft);
+  popover.style.top = top + 'px';
+  popover.style.left = Math.max(12, left) + 'px';
+}
+
+function registerPopoverCleanup(cleanup) {
+  if (globalPopoverCleanup) globalPopoverCleanup.close(true);
+  globalPopoverCleanup = cleanup;
+  setTimeout(() => {
+    document.addEventListener('pointerdown', cleanup.onOutsidePointerDown);
+    window.addEventListener('resize', cleanup.onResize, { passive: true });
+    window.addEventListener('scroll', cleanup.onResize, { passive: true });
+  }, 0);
+}
+
+function clearGlobalPopoverCleanup(cleanup) {
+  const active = cleanup || globalPopoverCleanup;
+  if (!active) return;
+  document.removeEventListener('pointerdown', active.onOutsidePointerDown);
+  window.removeEventListener('resize', active.onResize);
+  window.removeEventListener('scroll', active.onResize);
+  if (!cleanup || globalPopoverCleanup === cleanup) globalPopoverCleanup = null;
+}
+
+function openDropdownColorPopover(dd, buttonEl, triggerEl, titleInput) {
+  closeAccentPopover(true);
+  closeDropdownColorPopover(true);
+  const pop = document.createElement('div');
+  pop.className = 'floating-popover';
+  pop.innerHTML = `
+    <h4>Colores del dropdown</h4>
+    <label class="popover-color-row"><span>Fondo</span><input type="color" value="${toColorInputValue(dd.headerBg, '#2c2c2c')}" data-role="bg"></label>
+    <label class="popover-color-row"><span>Texto</span><input type="color" value="${toColorInputValue(dd.headerColor, '#e8e8e8')}" data-role="color"></label>
+    <div class="popover-actions">
+      <button type="button" data-action="cancel">Cancelar</button>
+      <button type="button" class="primary-btn" data-action="ok">OK</button>
+    </div>
+  `;
+  document.body.appendChild(pop);
+  dropdownColorPopover = pop;
+  setPopoverPosition(pop, buttonEl);
+  requestAnimationFrame(() => pop.classList.add('open'));
+
+  const cleanup = {
+    onOutsidePointerDown: (event) => {
+      if (!pop.contains(event.target) && !buttonEl.contains(event.target)) closeDropdownColorPopover();
+    },
+    onResize: () => {
+      if (dropdownColorPopover === pop) setPopoverPosition(pop, buttonEl);
+    },
+    close: closeDropdownColorPopover
+  };
+  registerPopoverCleanup(cleanup);
+  pop._cleanup = cleanup;
+
+  pop.querySelector('[data-action="cancel"]').addEventListener('click', () => closeDropdownColorPopover());
+  pop.querySelector('[data-action="ok"]').addEventListener('click', () => {
+    const bg = pop.querySelector('[data-role="bg"]').value;
+    const color = pop.querySelector('[data-role="color"]').value;
+    dd.headerBg = bg;
+    dd.headerColor = color;
+    triggerEl.style.background = bg;
+    triggerEl.style.color = color;
+    titleInput.style.color = color;
+    save();
+    closeDropdownColorPopover();
+  });
+}
+
+function closeDropdownColorPopover(immediate = false) {
+  if (!dropdownColorPopover) return;
+  const pop = dropdownColorPopover;
+  dropdownColorPopover = null;
+  clearGlobalPopoverCleanup(pop._cleanup);
+  const remove = () => { if (pop.parentNode) pop.parentNode.removeChild(pop); };
+  if (immediate) return remove();
+  pop.classList.remove('open');
+  setTimeout(remove, 200);
+}
+
+function toColorInputValue(color, fallback) {
+  if (!color) return fallback;
+  if (color.startsWith('#')) return color;
+  const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+  if (!match) return fallback;
+  return '#' + match.slice(1, 4).map(v => Number(v).toString(16).padStart(2, '0')).join('');
+}
+
+function getAccentKey(theme) {
+  return theme === 'light' ? 'notasapp_accent_light' : 'notasapp_accent_dark';
+}
+
+function applySavedAccent(theme = document.documentElement.getAttribute('data-theme') || 'dark') {
+  const accent = localStorage.getItem(getAccentKey(theme)) || DEFAULT_ACCENT;
+  document.documentElement.style.setProperty('--accent', accent);
+}
+
+function setupAccentButton() {
+  const btn = document.getElementById('accentBtn');
+  if (!btn || btn._bound) return;
+  btn._bound = true;
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (accentPopover) closeAccentPopover();
+    else openAccentPopover(btn);
+  });
+}
+
+function openAccentPopover(buttonEl) {
+  closeDropdownColorPopover(true);
+  closeAccentPopover(true);
+  const darkValue = toColorInputValue(localStorage.getItem('notasapp_accent_dark') || DEFAULT_ACCENT, '#1b8170');
+  const lightValue = toColorInputValue(localStorage.getItem('notasapp_accent_light') || DEFAULT_ACCENT, '#1b8170');
+  const pop = document.createElement('div');
+  pop.className = 'floating-popover accent-popover';
+  pop.innerHTML = `
+    <h4>Colores de interfaz</h4>
+    <label class="popover-color-row"><span>Accent oscuro</span><input type="color" value="${darkValue}" data-role="dark"></label>
+    <label class="popover-color-row"><span>Accent claro</span><input type="color" value="${lightValue}" data-role="light"></label>
+    <div class="popover-actions">
+      <button type="button" data-action="reset">Restablecer colores</button>
+      <button type="button" data-action="close">Cerrar</button>
+    </div>
+  `;
+  document.body.appendChild(pop);
+  accentPopover = pop;
+  setPopoverPosition(pop, buttonEl);
+  requestAnimationFrame(() => pop.classList.add('open'));
+
+  const cleanup = {
+    onOutsidePointerDown: (event) => {
+      if (!pop.contains(event.target) && !buttonEl.contains(event.target)) closeAccentPopover();
+    },
+    onResize: () => {
+      if (accentPopover === pop) setPopoverPosition(pop, buttonEl);
+    },
+    close: closeAccentPopover
+  };
+  registerPopoverCleanup(cleanup);
+  pop._cleanup = cleanup;
+
+  const darkInput = pop.querySelector('[data-role="dark"]');
+  const lightInput = pop.querySelector('[data-role="light"]');
+  const applyFromInputs = () => {
+    localStorage.setItem('notasapp_accent_dark', darkInput.value);
+    localStorage.setItem('notasapp_accent_light', lightInput.value);
+    applySavedAccent();
+  };
+  darkInput.addEventListener('input', applyFromInputs);
+  lightInput.addEventListener('input', applyFromInputs);
+  pop.querySelector('[data-action="reset"]').addEventListener('click', () => {
+    darkInput.value = '#1b8170';
+    lightInput.value = '#1b8170';
+    applyFromInputs();
+  });
+  pop.querySelector('[data-action="close"]').addEventListener('click', () => closeAccentPopover());
+}
+
+function closeAccentPopover(immediate = false) {
+  if (!accentPopover) return;
+  const pop = accentPopover;
+  accentPopover = null;
+  clearGlobalPopoverCleanup(pop._cleanup);
+  const remove = () => { if (pop.parentNode) pop.parentNode.removeChild(pop); };
+  if (immediate) return remove();
+  pop.classList.remove('open');
+  setTimeout(remove, 200);
+}
+
 document.getElementById('themeToggle').addEventListener('change', function() {
   const theme = this.checked ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('notasapp_theme', theme);
+  applySavedAccent(theme);
 });
 
-// ============================================================
-//  NEW PAGE
-// ============================================================
 function openNewPageModal() {
-  const overlay = document.getElementById('newPageModal');
-  overlay.classList.add('active');
+  document.getElementById('newPageModal').classList.add('active');
 }
 function closeNewPageModal() {
   const overlay = document.getElementById('newPageModal');
@@ -1236,7 +1431,7 @@ function confirmNewPage() {
     id: uid(),
     name: 'Hoja ' + (pages.length + 1),
     dropdowns: keep
-      ? page.dropdowns.map(dd => ({ id: uid(), title: dd.title, content: '', open: dd.open }))
+      ? page.dropdowns.map(dd => ({ id: uid(), title: dd.title, content: '', open: dd.open, headerBg: dd.headerBg, headerColor: dd.headerColor }))
       : []
   };
   pages.push(newPage);
@@ -1244,7 +1439,6 @@ function confirmNewPage() {
   closeNewPageModal();
   save();
   renderAll();
-  // Animate the new tab
   const tabs = document.querySelectorAll('.page-tab');
   const newTab = tabs[tabs.length - 1];
   if (newTab) newTab.classList.add('new-tab');
@@ -1264,22 +1458,17 @@ function switchPage(i) {
   }, 150);
 }
 
-// ============================================================
-//  UTILS
-// ============================================================
 function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
-
-// ============================================================
-//  CHECKLIST MODE
-// ============================================================
-let checklistActive = false;
 
 function toggleChecklistMode() {
   if (!activeNoteEl) {
-    // activate on the first note-area
     const first = document.querySelector('.note-area');
-    if (first) { activeNoteEl = first; first.focus(); }
-    else return;
+    if (first) {
+      activeNoteEl = first;
+      first.focus();
+    } else {
+      return;
+    }
   }
   if (checklistActive) {
     saveChecklistMode();
@@ -1292,24 +1481,22 @@ function toggleChecklistMode() {
   const noteArea = activeNoteEl;
   noteArea.style.display = 'none';
 
-  const overlay = noteArea.nextElementSibling; // .checklist-overlay
+  const overlay = noteArea.nextElementSibling;
   if (!overlay || !overlay.classList.contains('checklist-overlay')) return;
   overlay.innerHTML = '';
   overlay.classList.add('active');
 
-  // Parse existing content into lines
   const html = noteArea.innerHTML;
   const lines = htmlToLines(html);
 
   lines.forEach((line, idx) => {
-    const isChecked = line.checked;
     const item = document.createElement('div');
-    item.className = 'cl-item' + (isChecked ? ' checked' : '');
+    item.className = 'cl-item' + (line.checked ? ' checked' : '');
     item.style.animationDelay = (idx * 40) + 'ms';
 
     const cb = document.createElement('input');
     cb.type = 'checkbox';
-    cb.checked = isChecked;
+    cb.checked = line.checked;
 
     const textEl = document.createElement('span');
     textEl.className = 'cl-item-text';
@@ -1323,7 +1510,7 @@ function toggleChecklistMode() {
       cb.checked = item.classList.contains('checked');
     };
     item.addEventListener('click', (e) => {
-      if (e.target === cb) return; // checkbox handles itself
+      if (e.target === cb) return;
       toggle();
     });
     cb.addEventListener('change', () => {
@@ -1343,14 +1530,12 @@ function saveChecklistMode() {
   const overlay = noteArea.nextElementSibling;
   if (!overlay || !overlay.classList.contains('checklist-overlay')) return;
 
-  // Fade-out animation before restoring
   overlay.classList.add('exiting');
   setTimeout(() => {
     checklistActive = false;
     document.getElementById('btnChecklist').classList.remove('active-tool');
     document.getElementById('btnChecklistDone').style.display = 'none';
 
-    // Build HTML from checklist items
     const items = overlay.querySelectorAll('.cl-item');
     const lines = Array.from(items).map(item => {
       const text = item.querySelector('.cl-item-text').textContent;
@@ -1363,33 +1548,24 @@ function saveChecklistMode() {
     overlay.classList.remove('exiting');
     overlay.innerHTML = '';
     noteArea.style.display = '';
-
-    // Save to data
     noteArea.dispatchEvent(new Event('blur'));
   }, 150);
 }
 
 function htmlToLines(html) {
-  // Normalize: replace </div><div> and <div> block transitions with \n
-  let normalized = html
-    .replace(/<\/div>\s*<div[^>]*>/gi, '\n')
-    .replace(/<div[^>]*>/gi, '\n')
-    .replace(/<\/div>/gi, '')
-    .replace(/<br\s*\/?>/gi, '\n');
-
-  // Strip remaining HTML tags to get plain text, but track <s> for checked state
-  // We need to detect which lines are wrapped in <s>
-  // Work on original HTML split by line separators
   const rawSegments = html
-    .replace(/<\/div>\s*<div[^>]*>/gi, '\n')
-    .replace(/<div[^>]*>/gi, '\n')
+    .replace(/<\/div>\s*<div[^>]*>/gi, '
+')
+    .replace(/<div[^>]*>/gi, '
+')
     .replace(/<\/div>/gi, '')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .split('\n');
+    .replace(/<br\s*\/?>/gi, '
+')
+    .split('
+');
 
   return rawSegments.map(seg => {
-    const checked = /<s\b[^>]*>/i.test(seg) || /line-through/i.test(seg);
-    // Strip all tags to get plain text
+    const checked = /<s[^>]*>/i.test(seg) || /line-through/i.test(seg);
     const tmp = document.createElement('div');
     tmp.innerHTML = seg;
     const text = tmp.textContent.trim();
@@ -1402,9 +1578,6 @@ function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ============================================================
-//  START
-// ============================================================
 init();
 </script>
 </body>
