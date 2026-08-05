@@ -310,10 +310,26 @@
       color: var(--text);
       flex: 1;
       word-break: break-word;
+      transition: text-decoration 0.2s ease, opacity 0.2s ease, color 0.2s ease;
     }
     .cl-item.checked .cl-item-text {
       text-decoration: line-through;
       color: var(--text-muted);
+      opacity: 0.65;
+    }
+    @keyframes clItemIn {
+      from { opacity: 0; transform: translateX(-14px) scale(0.97); }
+      to   { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    .cl-item {
+      animation: clItemIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    @keyframes clItemOut {
+      from { opacity: 1; transform: scale(1); }
+      to   { opacity: 0; transform: scale(0.95); }
+    }
+    .checklist-overlay.exiting .cl-item {
+      animation: clItemOut 0.15s ease forwards;
     }
     .toolbar button.active-tool {
       background: var(--accent);
@@ -657,9 +673,6 @@
     </select>
     <input type="number" id="fontSize" min="8" max="72" value="15" title="Tamano de fuente" onchange="applyFontSize()" style="width:52px" />
     <div class="toolbar-sep"></div>
-    <button onclick="fmt('insertUnorderedList')" title="Lista">Lista</button>
-    <button onclick="fmt('insertOrderedList')" title="Lista numerada">1. Lista</button>
-    <div class="toolbar-sep"></div>
     <button id="btnChecklist" onclick="toggleChecklistMode()" title="Modo checklist">Checklist</button>
     <button id="btnChecklistDone" onclick="saveChecklistMode()" title="Guardar checklist" style="display:none">Listo</button>
   </div>
@@ -846,7 +859,7 @@ function buildDropdownEl(dd, index) {
   controls.appendChild(delBtn);
 
   // Pointer-based drag
-  setupDrag(wrap, dragHandle, index);
+  setupDrag(wrap, dragHandle);
 
   // Dropdown structure
   const dropdown = document.createElement('div');
@@ -1066,13 +1079,13 @@ function deleteDropdown(index, wrapEl) {
 }
 
 // ============================================================
-//  SMOOTH POINTER DRAG & DROP (rewritten with drop indicator)
+//  SMOOTH POINTER DRAG & DROP
 // ============================================================
 const ghost = document.getElementById('dragGhost');
 let dragState = null;
 let dropIndicator = null;
 
-function setupDrag(wrap, handle, index) {
+function setupDrag(wrap, handle) {
   handle.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     handle.setPointerCapture(e.pointerId);
@@ -1085,7 +1098,10 @@ function setupDrag(wrap, handle, index) {
     ghost.style.left = (e.clientX + 12) + 'px';
     ghost.style.top  = (e.clientY - 16) + 'px';
 
-    dragState = { srcIndex: index };
+    // Read live DOM index instead of stale closure value
+    const list = document.getElementById('dropdownsList');
+    const allWraps = Array.from(list.querySelectorAll('.dropdown-wrap'));
+    dragState = { srcIndex: allWraps.indexOf(wrap), srcWrap: wrap };
     wrap.classList.add('dragging');
 
     // create drop indicator
@@ -1104,9 +1120,8 @@ function setupDrag(wrap, handle, index) {
 
     // Remove old indicator
     if (dropIndicator.parentNode) dropIndicator.parentNode.removeChild(dropIndicator);
-    document.querySelectorAll('.dropdown-wrap').forEach(w => w.classList.remove('drag-over'));
 
-    // Find insert position
+    // Find insert position using all sibling wraps
     const list = document.getElementById('dropdownsList');
     const wraps = Array.from(list.querySelectorAll('.dropdown-wrap'));
     let insertBefore = null;
@@ -1118,10 +1133,12 @@ function setupDrag(wrap, handle, index) {
     if (insertBefore) {
       list.insertBefore(dropIndicator, insertBefore);
     } else {
-      // append at end (after last wrap, before any non-wrap children)
       const lastWrap = wraps[wraps.length - 1];
       if (lastWrap && lastWrap !== wrap) {
         lastWrap.after(dropIndicator);
+      } else if (wraps.length === 1) {
+        // only one item, append to list
+        list.appendChild(dropIndicator);
       }
     }
   }
@@ -1130,22 +1147,25 @@ function setupDrag(wrap, handle, index) {
     handle.removeEventListener('pointermove', onPointerMove);
     ghost.style.display = 'none';
 
-    if (dropIndicator && dropIndicator.parentNode) {
+    if (dropIndicator && dropIndicator.parentNode && dragState) {
       const list = document.getElementById('dropdownsList');
       const wraps = Array.from(list.querySelectorAll('.dropdown-wrap'));
-      // determine target index from indicator position
+
+      // Determine target index: which wrap comes right after the indicator
       let targetIndex = wraps.length; // default: end
       for (let i = 0; i < wraps.length; i++) {
+        // DOCUMENT_POSITION_FOLLOWING means wraps[i] comes after indicator
         if (dropIndicator.compareDocumentPosition(wraps[i]) & Node.DOCUMENT_POSITION_FOLLOWING) {
-          // indicator is before wraps[i]
           targetIndex = i;
           break;
         }
       }
       dropIndicator.parentNode.removeChild(dropIndicator);
 
-      const srcIndex = dragState.srcIndex;
-      if (targetIndex !== srcIndex && targetIndex !== srcIndex + 1) {
+      // Re-read src index from live DOM in case renders happened
+      const srcIndex = wraps.indexOf(dragState.srcWrap);
+
+      if (srcIndex !== -1 && targetIndex !== srcIndex && targetIndex !== srcIndex + 1) {
         syncCurrentPageFromDOM();
         const page = pages[currentPage];
         const moved = page.dropdowns.splice(srcIndex, 1)[0];
@@ -1154,6 +1174,8 @@ function setupDrag(wrap, handle, index) {
         save();
         renderDropdowns();
       }
+    } else if (dropIndicator && dropIndicator.parentNode) {
+      dropIndicator.parentNode.removeChild(dropIndicator);
     }
 
     document.querySelectorAll('.dropdown-wrap').forEach(w => {
@@ -1163,13 +1185,6 @@ function setupDrag(wrap, handle, index) {
     dragState = null;
     dropIndicator = null;
   }
-}
-
-function getWrapAtPoint(x, y) {
-  ghost.style.pointerEvents = 'none';
-  const el = document.elementFromPoint(x, y);
-  if (!el) return null;
-  return el.closest('.dropdown-wrap');
 }
 
 // ============================================================
@@ -1265,10 +1280,11 @@ function toggleChecklistMode() {
   const html = noteArea.innerHTML;
   const lines = htmlToLines(html);
 
-  lines.forEach(line => {
+  lines.forEach((line, idx) => {
     const isChecked = line.checked;
     const item = document.createElement('div');
     item.className = 'cl-item' + (isChecked ? ' checked' : '');
+    item.style.animationDelay = (idx * 40) + 'ms';
 
     const cb = document.createElement('input');
     cb.type = 'checkbox';
@@ -1300,53 +1316,65 @@ function toggleChecklistMode() {
 
 function saveChecklistMode() {
   if (!checklistActive) return;
-  checklistActive = false;
-  document.getElementById('btnChecklist').classList.remove('active-tool');
-  document.getElementById('btnChecklistDone').style.display = 'none';
 
   const noteArea = activeNoteEl;
   if (!noteArea) return;
   const overlay = noteArea.nextElementSibling;
   if (!overlay || !overlay.classList.contains('checklist-overlay')) return;
 
-  // Build HTML from checklist items
-  const items = overlay.querySelectorAll('.cl-item');
-  const lines = Array.from(items).map(item => {
-    const text = item.querySelector('.cl-item-text').textContent;
-    const checked = item.classList.contains('checked');
-    return checked ? '<s>' + escapeHtml(text) + '</s>' : escapeHtml(text);
-  });
-  noteArea.innerHTML = lines.join('<br>');
+  // Fade-out animation before restoring
+  overlay.classList.add('exiting');
+  setTimeout(() => {
+    checklistActive = false;
+    document.getElementById('btnChecklist').classList.remove('active-tool');
+    document.getElementById('btnChecklistDone').style.display = 'none';
 
-  overlay.classList.remove('active');
-  overlay.innerHTML = '';
-  noteArea.style.display = '';
+    // Build HTML from checklist items
+    const items = overlay.querySelectorAll('.cl-item');
+    const lines = Array.from(items).map(item => {
+      const text = item.querySelector('.cl-item-text').textContent;
+      const checked = item.classList.contains('checked');
+      return checked ? '<s>' + escapeHtml(text) + '</s>' : escapeHtml(text);
+    });
+    noteArea.innerHTML = lines.join('<br>');
 
-  // Save to data
-  noteArea.dispatchEvent(new Event('blur'));
+    overlay.classList.remove('active');
+    overlay.classList.remove('exiting');
+    overlay.innerHTML = '';
+    noteArea.style.display = '';
+
+    // Save to data
+    noteArea.dispatchEvent(new Event('blur'));
+  }, 150);
 }
 
 function htmlToLines(html) {
-  // Split by <br>, <p>, <div> tags; detect <s> or line-through as checked
-  const tmp = document.createElement('div');
-  tmp.innerHTML = html;
-  // Replace block elements with newline markers
-  tmp.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
-  tmp.querySelectorAll('p, div').forEach(el => {
-    el.insertAdjacentText('afterend', '\n');
-  });
-  const rawLines = tmp.textContent.split('\n');
-  // Also detect <s> tags by checking original html lines
-  const htmlLines = html.split(/<br\s*\/?>/i);
-  const result = rawLines.map((line, i) => {
-    const trimmed = line.trim();
-    if (!trimmed) return null;
-    // Check if corresponding html segment contains <s> or line-through
-    const htmlSeg = htmlLines[i] || '';
-    const checked = /<s>/i.test(htmlSeg) || /line-through/i.test(htmlSeg);
-    return { text: trimmed, checked };
+  // Normalize: replace </div><div> and <div> block transitions with \n
+  let normalized = html
+    .replace(/<\/div>\s*<div[^>]*>/gi, '\n')
+    .replace(/<div[^>]*>/gi, '\n')
+    .replace(/<\/div>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n');
+
+  // Strip remaining HTML tags to get plain text, but track <s> for checked state
+  // We need to detect which lines are wrapped in <s>
+  // Work on original HTML split by line separators
+  const rawSegments = html
+    .replace(/<\/div>\s*<div[^>]*>/gi, '\n')
+    .replace(/<div[^>]*>/gi, '\n')
+    .replace(/<\/div>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .split('\n');
+
+  return rawSegments.map(seg => {
+    const checked = /<s\b[^>]*>/i.test(seg) || /line-through/i.test(seg);
+    // Strip all tags to get plain text
+    const tmp = document.createElement('div');
+    tmp.innerHTML = seg;
+    const text = tmp.textContent.trim();
+    if (!text) return null;
+    return { text, checked };
   }).filter(Boolean);
-  return result.length ? result : [{ text: '', checked: false }];
 }
 
 function escapeHtml(str) {
