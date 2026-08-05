@@ -859,7 +859,7 @@ function buildDropdownEl(dd, index) {
   controls.appendChild(delBtn);
 
   // Pointer-based drag
-  setupDrag(wrap, dragHandle, index);
+  setupDrag(wrap, dragHandle);
 
   // Dropdown structure
   const dropdown = document.createElement('div');
@@ -1079,13 +1079,13 @@ function deleteDropdown(index, wrapEl) {
 }
 
 // ============================================================
-//  SMOOTH POINTER DRAG & DROP (rewritten with drop indicator)
+//  SMOOTH POINTER DRAG & DROP
 // ============================================================
 const ghost = document.getElementById('dragGhost');
 let dragState = null;
 let dropIndicator = null;
 
-function setupDrag(wrap, handle, index) {
+function setupDrag(wrap, handle) {
   handle.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     handle.setPointerCapture(e.pointerId);
@@ -1098,7 +1098,10 @@ function setupDrag(wrap, handle, index) {
     ghost.style.left = (e.clientX + 12) + 'px';
     ghost.style.top  = (e.clientY - 16) + 'px';
 
-    dragState = { srcIndex: index };
+    // Read live DOM index instead of stale closure value
+    const list = document.getElementById('dropdownsList');
+    const allWraps = Array.from(list.querySelectorAll('.dropdown-wrap'));
+    dragState = { srcIndex: allWraps.indexOf(wrap), srcWrap: wrap };
     wrap.classList.add('dragging');
 
     // create drop indicator
@@ -1117,9 +1120,8 @@ function setupDrag(wrap, handle, index) {
 
     // Remove old indicator
     if (dropIndicator.parentNode) dropIndicator.parentNode.removeChild(dropIndicator);
-    document.querySelectorAll('.dropdown-wrap').forEach(w => w.classList.remove('drag-over'));
 
-    // Find insert position
+    // Find insert position using all sibling wraps
     const list = document.getElementById('dropdownsList');
     const wraps = Array.from(list.querySelectorAll('.dropdown-wrap'));
     let insertBefore = null;
@@ -1131,10 +1133,12 @@ function setupDrag(wrap, handle, index) {
     if (insertBefore) {
       list.insertBefore(dropIndicator, insertBefore);
     } else {
-      // append at end (after last wrap, before any non-wrap children)
       const lastWrap = wraps[wraps.length - 1];
       if (lastWrap && lastWrap !== wrap) {
         lastWrap.after(dropIndicator);
+      } else if (wraps.length === 1) {
+        // only one item, append to list
+        list.appendChild(dropIndicator);
       }
     }
   }
@@ -1143,22 +1147,25 @@ function setupDrag(wrap, handle, index) {
     handle.removeEventListener('pointermove', onPointerMove);
     ghost.style.display = 'none';
 
-    if (dropIndicator && dropIndicator.parentNode) {
+    if (dropIndicator && dropIndicator.parentNode && dragState) {
       const list = document.getElementById('dropdownsList');
       const wraps = Array.from(list.querySelectorAll('.dropdown-wrap'));
-      // determine target index from indicator position
+
+      // Determine target index: which wrap comes right after the indicator
       let targetIndex = wraps.length; // default: end
       for (let i = 0; i < wraps.length; i++) {
+        // DOCUMENT_POSITION_FOLLOWING means wraps[i] comes after indicator
         if (dropIndicator.compareDocumentPosition(wraps[i]) & Node.DOCUMENT_POSITION_FOLLOWING) {
-          // indicator is before wraps[i]
           targetIndex = i;
           break;
         }
       }
       dropIndicator.parentNode.removeChild(dropIndicator);
 
-      const srcIndex = dragState.srcIndex;
-      if (targetIndex !== srcIndex && targetIndex !== srcIndex + 1) {
+      // Re-read src index from live DOM in case renders happened
+      const srcIndex = wraps.indexOf(dragState.srcWrap);
+
+      if (srcIndex !== -1 && targetIndex !== srcIndex && targetIndex !== srcIndex + 1) {
         syncCurrentPageFromDOM();
         const page = pages[currentPage];
         const moved = page.dropdowns.splice(srcIndex, 1)[0];
@@ -1167,6 +1174,8 @@ function setupDrag(wrap, handle, index) {
         save();
         renderDropdowns();
       }
+    } else if (dropIndicator && dropIndicator.parentNode) {
+      dropIndicator.parentNode.removeChild(dropIndicator);
     }
 
     document.querySelectorAll('.dropdown-wrap').forEach(w => {
@@ -1176,13 +1185,6 @@ function setupDrag(wrap, handle, index) {
     dragState = null;
     dropIndicator = null;
   }
-}
-
-function getWrapAtPoint(x, y) {
-  ghost.style.pointerEvents = 'none';
-  const el = document.elementFromPoint(x, y);
-  if (!el) return null;
-  return el.closest('.dropdown-wrap');
 }
 
 // ============================================================
