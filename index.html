@@ -237,15 +237,6 @@
       gap: 6px;
       flex-shrink: 0;
     }
-    .dd-dot {
-      width: 13px; height: 13px;
-      border-radius: 50%;
-      background: var(--dot);
-      cursor: pointer;
-      transition: background 0.2s, transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
-      flex-shrink: 0;
-    }
-    .dd-dot:hover { background: var(--accent); transform: scale(1.3); }
     .dd-drag {
       cursor: grab;
       color: var(--text-muted);
@@ -257,6 +248,78 @@
     }
     .dd-drag:hover { color: var(--accent); }
     .dd-drag:active { cursor: grabbing; transform: scale(1.2); }
+    .dd-del {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      padding: 2px 4px;
+      border-radius: 6px;
+      transition: color 0.2s, background 0.2s, transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .dd-del:hover { color: #e55; background: rgba(255,80,80,0.12); transform: scale(1.2); }
+    @keyframes ddSlideOut {
+      from { opacity: 1; transform: scale(1) translateY(0); max-height: 300px; }
+      to   { opacity: 0; transform: scale(0.9) translateY(-8px); max-height: 0; }
+    }
+    .dropdown-wrap.removing {
+      animation: ddSlideOut 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    /* Drop indicator line */
+    .dd-drop-indicator {
+      height: 3px;
+      background: var(--accent);
+      border-radius: 3px;
+      margin: -7px 0;
+      transition: opacity 0.15s;
+      pointer-events: none;
+    }
+    /* Checklist overlay */
+    .checklist-overlay {
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      padding: 2px 0;
+    }
+    .checklist-overlay.active { display: flex; }
+    .cl-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 3px 2px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .cl-item:hover { background: rgba(128,128,128,0.1); }
+    .cl-item input[type=checkbox] {
+      accent-color: var(--accent);
+      width: 15px; height: 15px;
+      margin-top: 2px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .cl-item-text {
+      font-size: 15px;
+      font-family: 'Segoe UI', sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      flex: 1;
+      word-break: break-word;
+    }
+    .cl-item.checked .cl-item-text {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+    .toolbar button.active-tool {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
 
     /* Dropdown itself */
     .dropdown {
@@ -433,7 +496,7 @@
       color: var(--text-muted);
       font-size: 13px;
       cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+      transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
       user-select: none;
       display: flex;
       align-items: center;
@@ -458,6 +521,30 @@
       min-width: 30px;
       cursor: text;
     }
+    .page-tab-del {
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      font-size: 13px;
+      line-height: 1;
+      padding: 0 0 0 2px;
+      opacity: 0.6;
+      border-radius: 50%;
+      transition: opacity 0.2s, background 0.2s;
+      flex-shrink: 0;
+    }
+    .page-tab-del:hover { opacity: 1; background: rgba(255,255,255,0.2); }
+    @keyframes tabSlideIn {
+      from { opacity: 0; transform: translateX(20px) scale(0.9); }
+      to   { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    .page-tab.new-tab { animation: tabSlideIn 0.35s cubic-bezier(0.34,1.56,0.64,1) both; }
+    @keyframes tabFadeOut {
+      from { opacity: 1; transform: scale(1); }
+      to   { opacity: 0; transform: scale(0.8); }
+    }
+    .page-tab.removing { animation: tabFadeOut 0.25s cubic-bezier(0.34,1.56,0.64,1) both; }
 
     /* Scrollbar */
     ::-webkit-scrollbar { width: 7px; height: 7px; border-radius: 999px; }
@@ -572,6 +659,9 @@
     <div class="toolbar-sep"></div>
     <button onclick="fmt('insertUnorderedList')" title="Lista">Lista</button>
     <button onclick="fmt('insertOrderedList')" title="Lista numerada">1. Lista</button>
+    <div class="toolbar-sep"></div>
+    <button id="btnChecklist" onclick="toggleChecklistMode()" title="Modo checklist">Checklist</button>
+    <button id="btnChecklistDone" onclick="saveChecklistMode()" title="Guardar checklist" style="display:none">Listo</button>
   </div>
 
   <!-- DROPDOWNS LIST -->
@@ -658,10 +748,22 @@ function renderPagesNav() {
 
     tab.appendChild(nameSpan);
 
+    // delete button
+    if (pages.length > 1) {
+      const delBtn = document.createElement('button');
+      delBtn.className = 'page-tab-del';
+      delBtn.title = 'Eliminar hoja';
+      delBtn.textContent = '\u00d7';
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deletePage(i, tab);
+      });
+      tab.appendChild(delBtn);
+    }
+
     // single click = switch page
     tab.addEventListener('click', (e) => {
       if (e.detail === 1) {
-        // small delay to allow dblclick to cancel
         tab._clickTimer = setTimeout(() => switchPage(i), 180);
       }
     });
@@ -729,18 +831,19 @@ function buildDropdownEl(dd, index) {
   const controls = document.createElement('div');
   controls.className = 'dd-controls';
 
-  const dot = document.createElement('div');
-  dot.className = 'dd-dot';
-  dot.title = 'Renombrar';
-  dot.onclick = () => renameDropdown(index);
-
   const dragHandle = document.createElement('div');
   dragHandle.className = 'dd-drag';
   dragHandle.title = 'Arrastrar para ordenar';
   dragHandle.innerHTML = '&#8942;&#8942;';
 
-  controls.appendChild(dot);
+  const delBtn = document.createElement('button');
+  delBtn.className = 'dd-del';
+  delBtn.title = 'Eliminar dropdown';
+  delBtn.textContent = '\u00d7';
+  delBtn.addEventListener('click', () => deleteDropdown(index, wrap));
+
   controls.appendChild(dragHandle);
+  controls.appendChild(delBtn);
 
   // Pointer-based drag
   setupDrag(wrap, dragHandle, index);
@@ -821,7 +924,12 @@ function buildDropdownEl(dd, index) {
   noteArea.addEventListener('input', () => { dd.content = noteArea.innerHTML; });
   noteArea.addEventListener('keydown', (e) => handlePipeRule(e, noteArea, dd));
 
+  // Checklist overlay
+  const clOverlay = document.createElement('div');
+  clOverlay.className = 'checklist-overlay';
+
   ddList.appendChild(noteArea);
+  ddList.appendChild(clOverlay);
   ddBodyInner.appendChild(ddList);
   ddBody.appendChild(ddBodyInner);
 
@@ -932,31 +1040,57 @@ function renameDropdown(index) {
 }
 
 // ============================================================
-//  SMOOTH POINTER DRAG & DROP
+//  DELETE PAGE / DROPDOWN
+// ============================================================
+function deletePage(i, tabEl) {
+  if (pages.length <= 1) return;
+  tabEl.classList.add('removing');
+  setTimeout(() => {
+    syncCurrentPageFromDOM();
+    pages.splice(i, 1);
+    if (currentPage >= pages.length) currentPage = pages.length - 1;
+    save();
+    renderAll();
+  }, 260);
+}
+
+function deleteDropdown(index, wrapEl) {
+  wrapEl.classList.add('removing');
+  setTimeout(() => {
+    syncCurrentPageFromDOM();
+    const page = pages[currentPage];
+    page.dropdowns.splice(index, 1);
+    save();
+    renderDropdowns();
+  }, 320);
+}
+
+// ============================================================
+//  SMOOTH POINTER DRAG & DROP (rewritten with drop indicator)
 // ============================================================
 const ghost = document.getElementById('dragGhost');
-let dragState = null; // { srcIndex, ghostOffX, ghostOffY }
+let dragState = null;
+let dropIndicator = null;
 
 function setupDrag(wrap, handle, index) {
   handle.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     handle.setPointerCapture(e.pointerId);
 
-    const rect = wrap.getBoundingClientRect();
     const titleEl = wrap.querySelector('.dd-title');
     const title = titleEl ? titleEl.value : 'Dropdown';
 
     ghost.textContent = title;
     ghost.style.display = 'block';
-    ghost.style.left = (e.clientX - 20) + 'px';
-    ghost.style.top  = (e.clientY - 20) + 'px';
+    ghost.style.left = (e.clientX + 12) + 'px';
+    ghost.style.top  = (e.clientY - 16) + 'px';
 
-    dragState = {
-      srcIndex: index,
-      offX: e.clientX - rect.left,
-      offY: e.clientY - rect.top
-    };
+    dragState = { srcIndex: index };
     wrap.classList.add('dragging');
+
+    // create drop indicator
+    dropIndicator = document.createElement('div');
+    dropIndicator.className = 'dd-drop-indicator';
 
     handle.addEventListener('pointermove', onPointerMove);
     handle.addEventListener('pointerup', onPointerUp, { once: true });
@@ -965,43 +1099,73 @@ function setupDrag(wrap, handle, index) {
 
   function onPointerMove(e) {
     if (!dragState) return;
-    ghost.style.left = (e.clientX - 20) + 'px';
-    ghost.style.top  = (e.clientY - 20) + 'px';
+    ghost.style.left = (e.clientX + 12) + 'px';
+    ghost.style.top  = (e.clientY - 16) + 'px';
 
-    // Highlight target wrap
+    // Remove old indicator
+    if (dropIndicator.parentNode) dropIndicator.parentNode.removeChild(dropIndicator);
     document.querySelectorAll('.dropdown-wrap').forEach(w => w.classList.remove('drag-over'));
-    const target = getWrapAtPoint(e.clientX, e.clientY);
-    if (target && target !== wrap) target.classList.add('drag-over');
+
+    // Find insert position
+    const list = document.getElementById('dropdownsList');
+    const wraps = Array.from(list.querySelectorAll('.dropdown-wrap'));
+    let insertBefore = null;
+    for (const w of wraps) {
+      if (w === wrap) continue;
+      const rect = w.getBoundingClientRect();
+      if (e.clientY < rect.top + rect.height / 2) { insertBefore = w; break; }
+    }
+    if (insertBefore) {
+      list.insertBefore(dropIndicator, insertBefore);
+    } else {
+      // append at end (after last wrap, before any non-wrap children)
+      const lastWrap = wraps[wraps.length - 1];
+      if (lastWrap && lastWrap !== wrap) {
+        lastWrap.after(dropIndicator);
+      }
+    }
   }
 
   function onPointerUp(e) {
     handle.removeEventListener('pointermove', onPointerMove);
     ghost.style.display = 'none';
 
-    const target = getWrapAtPoint(e.clientX, e.clientY);
-    document.querySelectorAll('.dropdown-wrap').forEach(w => {
-      w.classList.remove('drag-over');
-      w.classList.remove('dragging');
-    });
+    if (dropIndicator && dropIndicator.parentNode) {
+      const list = document.getElementById('dropdownsList');
+      const wraps = Array.from(list.querySelectorAll('.dropdown-wrap'));
+      // determine target index from indicator position
+      let targetIndex = wraps.length; // default: end
+      for (let i = 0; i < wraps.length; i++) {
+        if (dropIndicator.compareDocumentPosition(wraps[i]) & Node.DOCUMENT_POSITION_FOLLOWING) {
+          // indicator is before wraps[i]
+          targetIndex = i;
+          break;
+        }
+      }
+      dropIndicator.parentNode.removeChild(dropIndicator);
 
-    if (target && dragState) {
-      const targetIndex = parseInt(target.dataset.index);
       const srcIndex = dragState.srcIndex;
-      if (targetIndex !== srcIndex) {
+      if (targetIndex !== srcIndex && targetIndex !== srcIndex + 1) {
         syncCurrentPageFromDOM();
         const page = pages[currentPage];
         const moved = page.dropdowns.splice(srcIndex, 1)[0];
-        page.dropdowns.splice(targetIndex, 0, moved);
+        const adjustedTarget = targetIndex > srcIndex ? targetIndex - 1 : targetIndex;
+        page.dropdowns.splice(adjustedTarget, 0, moved);
         save();
         renderDropdowns();
       }
     }
+
+    document.querySelectorAll('.dropdown-wrap').forEach(w => {
+      w.classList.remove('drag-over');
+      w.classList.remove('dragging');
+    });
     dragState = null;
+    dropIndicator = null;
   }
 }
 
 function getWrapAtPoint(x, y) {
-  // Hide ghost temporarily to hit-test underneath
   ghost.style.pointerEvents = 'none';
   const el = document.elementFromPoint(x, y);
   if (!el) return null;
@@ -1044,19 +1208,150 @@ function confirmNewPage() {
   closeNewPageModal();
   save();
   renderAll();
+  // Animate the new tab
+  const tabs = document.querySelectorAll('.page-tab');
+  const newTab = tabs[tabs.length - 1];
+  if (newTab) newTab.classList.add('new-tab');
 }
 
 function switchPage(i) {
-  syncCurrentPageFromDOM();
-  currentPage = i;
-  save();
-  renderAll();
+  if (i === currentPage) return;
+  const list = document.getElementById('dropdownsList');
+  list.style.transition = 'opacity 0.15s';
+  list.style.opacity = '0';
+  setTimeout(() => {
+    syncCurrentPageFromDOM();
+    currentPage = i;
+    save();
+    renderAll();
+    list.style.opacity = '1';
+  }, 150);
 }
 
 // ============================================================
 //  UTILS
 // ============================================================
 function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+
+// ============================================================
+//  CHECKLIST MODE
+// ============================================================
+let checklistActive = false;
+
+function toggleChecklistMode() {
+  if (!activeNoteEl) {
+    // activate on the first note-area
+    const first = document.querySelector('.note-area');
+    if (first) { activeNoteEl = first; first.focus(); }
+    else return;
+  }
+  if (checklistActive) {
+    saveChecklistMode();
+    return;
+  }
+  checklistActive = true;
+  document.getElementById('btnChecklist').classList.add('active-tool');
+  document.getElementById('btnChecklistDone').style.display = '';
+
+  const noteArea = activeNoteEl;
+  noteArea.style.display = 'none';
+
+  const overlay = noteArea.nextElementSibling; // .checklist-overlay
+  if (!overlay || !overlay.classList.contains('checklist-overlay')) return;
+  overlay.innerHTML = '';
+  overlay.classList.add('active');
+
+  // Parse existing content into lines
+  const html = noteArea.innerHTML;
+  const lines = htmlToLines(html);
+
+  lines.forEach(line => {
+    const isChecked = line.checked;
+    const item = document.createElement('div');
+    item.className = 'cl-item' + (isChecked ? ' checked' : '');
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = isChecked;
+
+    const textEl = document.createElement('span');
+    textEl.className = 'cl-item-text';
+    textEl.textContent = line.text;
+
+    item.appendChild(cb);
+    item.appendChild(textEl);
+
+    const toggle = () => {
+      item.classList.toggle('checked');
+      cb.checked = item.classList.contains('checked');
+    };
+    item.addEventListener('click', (e) => {
+      if (e.target === cb) return; // checkbox handles itself
+      toggle();
+    });
+    cb.addEventListener('change', () => {
+      if (cb.checked) item.classList.add('checked');
+      else item.classList.remove('checked');
+    });
+
+    overlay.appendChild(item);
+  });
+}
+
+function saveChecklistMode() {
+  if (!checklistActive) return;
+  checklistActive = false;
+  document.getElementById('btnChecklist').classList.remove('active-tool');
+  document.getElementById('btnChecklistDone').style.display = 'none';
+
+  const noteArea = activeNoteEl;
+  if (!noteArea) return;
+  const overlay = noteArea.nextElementSibling;
+  if (!overlay || !overlay.classList.contains('checklist-overlay')) return;
+
+  // Build HTML from checklist items
+  const items = overlay.querySelectorAll('.cl-item');
+  const lines = Array.from(items).map(item => {
+    const text = item.querySelector('.cl-item-text').textContent;
+    const checked = item.classList.contains('checked');
+    return checked ? '<s>' + escapeHtml(text) + '</s>' : escapeHtml(text);
+  });
+  noteArea.innerHTML = lines.join('<br>');
+
+  overlay.classList.remove('active');
+  overlay.innerHTML = '';
+  noteArea.style.display = '';
+
+  // Save to data
+  noteArea.dispatchEvent(new Event('blur'));
+}
+
+function htmlToLines(html) {
+  // Split by <br>, <p>, <div> tags; detect <s> or line-through as checked
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  // Replace block elements with newline markers
+  tmp.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+  tmp.querySelectorAll('p, div').forEach(el => {
+    el.insertAdjacentText('afterend', '\n');
+  });
+  const rawLines = tmp.textContent.split('\n');
+  // Also detect <s> tags by checking original html lines
+  const htmlLines = html.split(/<br\s*\/?>/i);
+  const result = rawLines.map((line, i) => {
+    const trimmed = line.trim();
+    if (!trimmed) return null;
+    // Check if corresponding html segment contains <s> or line-through
+    const htmlSeg = htmlLines[i] || '';
+    const checked = /<s>/i.test(htmlSeg) || /line-through/i.test(htmlSeg);
+    return { text: trimmed, checked };
+  }).filter(Boolean);
+  return result.length ? result : [{ text: '', checked: false }];
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
 // ============================================================
 //  START
