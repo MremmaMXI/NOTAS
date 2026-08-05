@@ -353,7 +353,6 @@
       flex-direction: column;
       min-height: 58px;
       background-color: var(--surface);
-      overflow: hidden;
       position: relative;
       flex: 1;
       transition: border-color 0.2s;
@@ -383,9 +382,11 @@
       background: var(--surface);
       border-radius: 12px;
       user-select: none;
-      transition: color 0.3s, background 0.3s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0);
+      transition: color 0.3s, background 0.3s, box-shadow 0.3s ease;
     }
     .dd-trigger:hover { background: var(--surface2); }
+    .dropdown input.dd-state:checked ~ .dd-trigger { box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
     .dd-arrow {
       display: inline-block;
       transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
